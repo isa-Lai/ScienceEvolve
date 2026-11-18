@@ -3,7 +3,9 @@ name: scienceevolve-scientist-two
 description: Execute the ScientistTwo scientific workflow, including subset/full experiments, idea evolution, ablations, PaperOrchestra drafting, ScholarPeer reviews and meta refinement, through SCIENCEEVOLVE roles and a durable evidence-backed controller.
 ---
 
-运行目录合同：本例使用 main Git-off，所有角色的 cwd 是同一个持久工作区。Task/W、协议状态和候选目录均以此为准。首次按需求中的授权输入清单准备 Task 并记录来源摘要；恢复时先读原有状态，不覆盖/重置。来源目录只读；缺输入时报告阻断。脚本路径从本次实际加载的 Skill 文件位置解析，不硬编码旧缓存路径；Skill 暂存副本可被刷新，运行状态必须写到共享 Task 目录。
+## Runtime directory contract
+
+This example runs with `main Git-off`; every role uses the same persistent workspace as its current working directory. The Task/W directory, protocol state, and candidate directories are all rooted there. On the first run, prepare the Task from the authorized input checklist in the request and record a summary of source provenance. On resume, read the existing state first; do not overwrite or reset it. Treat source directories as read-only and report missing inputs as blockers. Resolve script paths relative to the currently loaded Skill file; do not hard-code an obsolete cache path. The staged Skill copy may be refreshed, so write runtime state to the shared Task directory.
 
 
 # ScientistTwo

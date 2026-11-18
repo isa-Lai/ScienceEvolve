@@ -4,14 +4,14 @@
       "task"
     ],
     "decisions": [],
-    "instructions": "从需求和真实资料建立 Task：科学问题、原 SOTA 论文/代码/全量结果、固定代表性 subset、全部数据集和指标方向/统计方法、允许修改范围、执行命令/资源、Google Search 与 Semantic Scholar 工具、文献截止日和统一 novelty rubric。检查数据/运行环境/检索/LaTeX/PDF视觉工具可用。冻结基准、subset与约束，不能为提高分数换测试集。task 对象包含协议要求的全部字段，报告所用模型与原论文模型替换。缺条件返回 blocked。"
+    "instructions": "Build the Task from the request and actual source materials. Capture the scientific question; original SOTA paper, code, and full results; fixed representative subset; all datasets, metric directions, and statistical methods; permitted changes; execution commands and resources; Google Search and Semantic Scholar availability; literature cutoff; and the shared novelty rubric. Confirm data, runtime, search, LaTeX, and PDF visual-inspection tools are available. Freeze the benchmark, subset, and constraints; never change the test set to improve scores. Include all protocol-required Task fields and report any replacement of the paper's original model. Return blocked if required conditions are missing."
   },
   "limitation_extract": {
     "required": [
       "limitations"
     ],
     "decisions": [],
-    "instructions": "ScientistTwo §3.1：读取问题、原 SOTA 和此前 verifier 反馈，首次提取全部可操作局限；后续补充缺失项，保留原 limitations，不用覆盖集合冒充扩展。"
+    "instructions": "ScientistTwo §3.1: Read the problem, original SOTA, and prior verifier feedback. On the first pass, identify every actionable limitation; on later passes, add missing limitations while retaining the original set. Do not present an unchanged set as an expansion."
   },
   "limitation_verify": {
     "required": [
@@ -21,14 +21,14 @@
       "Expand",
       "Sufficient"
     ],
-    "instructions": "独立核对所有可操作限制是否足够支持新改进；Sufficient 或 Expand，并逐项反馈缺口。最多16轮由控制器管理；上限后保留未解决限制，不能伪造验证通过。"
+    "instructions": "Independently determine whether the actionable limitations are sufficient to support a new improvement. Return Sufficient or Expand and identify each gap. The controller manages up to 16 rounds; retain unresolved limitations at the limit and never fabricate successful verification."
   },
   "seed_generate": {
     "required": [
       "idea"
     ],
     "decisions": [],
-    "instructions": "第一次生成 h0；后续读取全部已生成想法及 novelty 分数，提出有区别且力求更高新颖性的一个想法。每个 idea={id,hypothesis,...} 关联所解决的限制、可执行算法和验证方法，禁止改动原种子。"
+    "instructions": "Generate h0 on the first pass. On later passes, review all existing ideas and novelty scores, then propose one distinct idea that aims for higher novelty. Each idea={id,hypothesis,...} must identify the limitation it addresses, an executable algorithm, and a validation method. Do not alter the original seed."
   },
   "novelty_check": {
     "required": [
@@ -36,7 +36,7 @@
       "references"
     ],
     "decisions": [],
-    "instructions": "使用 Google Search 实际检索两篇最相关参考论文，核验原文和截止日期，对待评种子按冻结 rubric 打分，记录创新/重叠及不确定性。references 恰好两项 {url,retrieval_evidence}，检索回执文件必须在 artifacts。不可用记忆补写引用。"
+    "instructions": "Use Google Search to retrieve the two most relevant reference papers, verify the original sources and cutoff date, and score the candidate seed with the frozen rubric. Record novelty, overlap, and uncertainty. Provide exactly two references, each with {url,retrieval_evidence}, and include retrieval receipts in artifacts. Never invent citations from memory."
   },
   "baseline_coding": {
     "required": [
@@ -47,7 +47,7 @@
       "hypothesis"
     ],
     "decisions": [],
-    "instructions": "真实复现原人类 SOTA 在冻结代表性 subset 上的主要实验，保存 E_base/C_base、环境、种子、精确命令、退出码、原始日志与所有指标。生成独立可重跑脚本；不能用论文全量表格当本地 subset 结果。"
+    "instructions": "Reproduce the original human SOTA's main experiment on the frozen representative subset. Save E_base/C_base, environment, seeds, exact commands, exit codes, raw logs, and every metric. Provide an independently rerunnable script. Do not report full-paper table values as local subset results."
   },
   "subset_coding": {
     "required": [
@@ -58,7 +58,7 @@
       "hypothesis"
     ],
     "decisions": [],
-    "instructions": "从不可变 C_base 新建当前候选代码副本，实现当前 h，在同一 subset/全部指标上真实执行并保存 h/E/C/命令/日志。每次运行使用独立目录，不改基线和任何已提交证据。"
+    "instructions": "Create a fresh candidate-code copy from immutable C_base, implement the current h, and execute it on the same subset with all metrics. Save h/E/C, commands, and logs. Use a separate directory for every run; do not alter the baseline or committed evidence."
   },
   "subset_critic": {
     "required": [
@@ -69,7 +69,7 @@
       "Engineer",
       "Good"
     ],
-    "instructions": "比较当前候选 subset 的全部数据集/指标/日志与 E_base，独立输出 Good（持续优于基线）、Bad（明显更差）或 Engineer（有希望但需要工程修复），给出实际证据和工程建议。不能任意做单标量排序。"
+    "instructions": "Compare all candidate subset datasets, metrics, and logs against E_base. Independently return Good (consistently better than baseline), Bad (clearly worse), or Engineer (promising but needing engineering fixes), with evidence and recommendations. Do not impose an arbitrary single-scalar ranking."
   },
   "subset_engineering": {
     "required": [
@@ -80,7 +80,7 @@
       "hypothesis"
     ],
     "decisions": [],
-    "instructions": "按 subset critic 的工程诊断在当前候选新副本改进实现/调参，保持研究假设及基准约束，实际重跑完整 subset。最多2次工程改进由状态机计数；失败保留诊断，不能替换成预期结果。"
+    "instructions": "Use the subset critic's engineering diagnosis to improve the implementation or tune parameters in a fresh candidate copy. Preserve the hypothesis and benchmark constraints, then rerun the complete subset. The state machine allows at most two engineering attempts. Retain diagnostics after failure; never substitute expected results."
   },
   "full_coding": {
     "required": [
@@ -91,7 +91,7 @@
       "hypothesis"
     ],
     "decisions": [],
-    "instructions": "只对 subset Good 的版本扩展到完整 benchmark，覆盖全部数据集/指标，实际执行并记录 full code/results/logs/commands/hypothesis。比较对象是原人类 SOTA 全量结果，不能只重跑 subset。"
+    "instructions": "Extend only a subset-Good version to the full benchmark, covering every dataset and metric. Execute it and record full code, results, logs, commands, and hypothesis. Compare against the original human SOTA's full results; rerunning only the subset is insufficient."
   },
   "full_critic": {
     "required": [
@@ -102,7 +102,7 @@
       "Engineer",
       "Good"
     ],
-    "instructions": "比较完整 benchmark 实测结果与原 SOTA 的全部数据集/指标；给出 Good/Bad/Engineer 与证据/修复建议。subset 胜出不等于 full Good。"
+    "instructions": "Compare measured full-benchmark results against the original SOTA across every dataset and metric. Return Good/Bad/Engineer with evidence and repair recommendations. A subset win does not establish a full-benchmark Good result."
   },
   "full_engineering": {
     "required": [
@@ -113,7 +113,7 @@
       "hypothesis"
     ],
     "decisions": [],
-    "instructions": "根据 context.refinement 分清来源：null 为 full critic 工程回环，ablation 为消融反馈，meta 为元评审反馈。从对应当前版本或 best 创建新代码副本，实施改进后真实重跑全量 benchmark。保留 h_new/E_new/C_new，不覆盖 best；后续是否替换由 Result Comparison 决定。"
+    "instructions": "Use context.refinement to identify the source: null means a full-critic engineering loop, ablation means ablation feedback, and meta means meta-review feedback. Create a fresh code copy from the corresponding current version or best, make the improvement, and rerun the full benchmark. Preserve h_new/E_new/C_new without overwriting best; Result Comparison decides whether to replace it."
   },
   "spec_filter": {
     "required": [
@@ -123,28 +123,28 @@
       "Pass",
       "Reject"
     ],
-    "instructions": "每次 coding/engineering 执行后立即检查任务约束、数据拆分/泄漏、允许修改范围、指标脚本、预算及输出来源。读取实际代码差异、命令和日志；Pass 或 Reject 并指出证据。违规结果不得进入 critic、best、消融或补实验汇总。"
+    "instructions": "After every coding or engineering run, check task constraints, data splits and leakage, permitted changes, metric scripts, budget, and output provenance. Inspect actual code diffs, commands, and logs; return Pass or Reject with evidence. Noncompliant results must not reach the critic, best, ablations, or supplemental-experiment summaries."
   },
   "idea_evolve": {
     "required": [
       "ideas"
     ],
     "decisions": [],
-    "instructions": "§3.3：读取此前所有轮次的完整事件，包括成功与 Bad 的 h/E/C/decision/feedback、工程尝试和失败日志，提出1个 evolved idea。明确父本和诊断如何改变假设；它不是 workflow Evolver，不改编排。控制器另加入1个未评高 novelty seed。"
+    "instructions": "§3.3: Review the complete event history from every prior round, including successful and Bad h/E/C/decision/feedback records, engineering attempts, and failure logs. Propose one evolved idea and explain how its parent and diagnostic evidence changed the hypothesis. This is not the workflow Evolver and must not alter orchestration. The controller adds a separate, unevaluated high-novelty seed."
   },
   "selector": {
     "required": [
       "candidate"
     ],
     "decisions": [],
-    "instructions": "在所有 full Good 候选中，结合全部 benchmark 指标与执行日志选择最佳候选 ID，解释多指标权衡，不自行用加权单分数替代原比较。保留同版本的 h_best/E_best/C_best。"
+    "instructions": "Among all full-benchmark Good candidates, select the best candidate ID using all benchmark metrics and execution logs. Explain metric tradeoffs; do not replace the original comparison with a weighted scalar score. Preserve the matching h_best/E_best/C_best version."
   },
   "ablation_plan": {
     "required": [
       "plans"
     ],
     "decisions": [],
-    "instructions": "针对当前 best 规划完整组件级消融集合 plans=[{id,intervention,comparison,command,expected_evidence},...]。隔离每项组件与增益来源，数量由真实方法决定，不能固定只做1个。best更换后重新规划。"
+    "instructions": "Plan a complete component-level ablation set for the current best: plans=[{id,intervention,comparison,command,expected_evidence},...]. Isolate each component and its contribution. Let the actual method determine the number of ablations; do not hard-code one. Replan whenever best changes."
   },
   "ablation_coding": {
     "required": [
@@ -155,7 +155,7 @@
       "hypothesis"
     ],
     "decisions": [],
-    "instructions": "只执行当前 context.plan，从 best 新副本实现消融并真实运行，保存可重跑代码、日志和结果。不得改 best。控制器将执行全部 plans 后才汇总；失败重试当前项，不能漏项。"
+    "instructions": "Execute only the current context.plan. Implement the ablation in a fresh copy of best, run it, and save rerunnable code, logs, and results. Do not modify best. The controller summarizes only after all plans are executed; retry a failed item and do not omit it."
   },
   "ablation_critic": {
     "required": [
@@ -165,7 +165,7 @@
       "Good",
       "Refine"
     ],
-    "instructions": "检查全部消融结果解释增益/冗余/负面组件。Good 或 Refine，给出需改进的假设和组件。最多一次 ablation-driven full refinement；更优后仍重新完成全套消融。"
+    "instructions": "Review all ablation results and explain gains, redundancy, and harmful components. Return Good or Refine and specify the hypothesis and components to improve. At most one ablation-driven full refinement is allowed; if it improves best, rerun the complete ablation suite."
   },
   "result_comparison": {
     "required": [
@@ -175,14 +175,14 @@
       "Better",
       "NotBetter"
     ],
-    "instructions": "独立比较 trial experiment 与不可变 best 的相同完整 benchmark、多指标、统计证据及日志。仅严格更好为 Better；相等、退化或证据不足为 NotBetter，不能用稿件观感或 reviewer score 代替性能。"
+    "instructions": "Independently compare the trial experiment with immutable best on the same full benchmark, using all metrics, statistical evidence, and logs. Return Better only when it is strictly better; ties, regressions, or insufficient evidence are NotBetter. Manuscript quality or reviewer scores cannot substitute for performance."
   },
   "draft_outline": {
     "required": [
       "outline"
     ],
     "decisions": [],
-    "instructions": "PaperOrchestra普通写作入口：从 best 想法、真实实验/消融日志、图表与 ICLR2025 template/guidelines 生成 outline.json，使用 upstream/paper-orchestra/methods/prompts/outline_agent.py 全部指令。保留 intro_related_work_plan、section_plan、citation_hints；输出不含虚构结果。"
+    "instructions": "PaperOrchestra standard writing entry: create outline.json from the best idea, actual experiment and ablation logs, figures, and ICLR 2025 template/guidelines, following all instructions in upstream/paper-orchestra/methods/prompts/outline_agent.py. Preserve intro_related_work_plan, section_plan, and citation_hints. Do not invent results."
   },
   "draft_literature": {
     "required": [
@@ -191,14 +191,14 @@
       "outline"
     ],
     "decisions": [],
-    "instructions": "按 upstream PaperOrchestra HybridLiteratureAgent 完整协议及 prompts/literature_review_agent.py：从 introduction搜索方向、related work各subsection查询和每章节citation_hints收集全部任务，去重；Google Search每任务最多3次，Semantic Scholar真实元信息/title match/日期过滤/去重注册，生成 references.bib、citation_map、outline_v1 和 introduction/related work LaTeX。遵循 methods/agents/literature_review_agent.py 的全部检索和引文注入细节；不得黑盒调用该自治 agent。独立查询可用工具并发，汇总所有结果，限流不丢任务。"
+    "instructions": "Follow the complete upstream PaperOrchestra HybridLiteratureAgent protocol and prompts/literature_review_agent.py. Collect and deduplicate tasks from introduction search directions, each related-work subsection query, and chapter citation_hints. Use at most three Google searches per task; retrieve real Semantic Scholar metadata, match titles, filter dates, and deduplicate registrations. Produce references.bib, citation_map, outline_v1, and introduction/related-work LaTeX. Follow all search and citation-injection details in methods/agents/literature_review_agent.py; do not invoke the autonomous agent as a black box. Run independent queries concurrently when tools permit, consolidate all results, and do not drop tasks when rate limited."
   },
   "draft_figures": {
     "required": [
       "figures"
     ],
     "decisions": [],
-    "instructions": "准备完整实验图表与方法图，使用真实数据和可重跑绘图脚本，逐图检查标注、统计误差、图例和方法一致性，输出 figures清单及源数据路径。使用普通 PaperOrchestra入口的已有图注入机制；不以生成图片代替科学数值图。若启用其可选PlottingAgent模式，必须执行上游每图规划/生成/最多3次视觉critic修订并保留日志。"
+    "instructions": "Prepare all experimental figures, tables, and method diagrams from real data and rerunnable plotting scripts. Inspect each for labels, statistical error, legends, and consistency with the method; provide a figures inventory and source-data paths. Use the standard PaperOrchestra figure-injection mechanism; generated illustrations cannot replace scientific plots. If the optional PlottingAgent mode is enabled, follow its per-figure planning, generation, and up-to-three visual-critic revisions, retaining logs."
   },
   "draft_sections": {
     "required": [
@@ -208,7 +208,7 @@
       "screenshots"
     ],
     "decisions": [],
-    "instructions": "依上游 section_writing_agent.py 原prompt，以完整outline、citation_map、figure info、不可变实验日志与ICLR2025规范撰写全部章节。使用随附模板真实编译PDF，渲染并检查页面，保存tex/pdf/compile_log/screenshots四类证据。不能只提交正文文本或漏reference。入口技术失败最多3次整体尝试。"
+    "instructions": "Follow the original prompt in upstream section_writing_agent.py. Write every section from the complete outline, citation_map, figure information, immutable experiment logs, and ICLR 2025 requirements. Compile a PDF with the supplied template, render and inspect pages, and save tex, pdf, compile_log, and screenshots as evidence. Do not submit only body text or omit references. Allow at most three overall attempts for entry-point technical failures."
   },
   "draft_quality": {
     "required": [
@@ -216,7 +216,7 @@
       "review"
     ],
     "decisions": [],
-    "instructions": "PaperOrchestra内部独立评审：按upstream/paper-orchestra/autoraters/agent_review.py的知识充分/负责/善意persona和完整AGENTREVIEW_INSTRUCTIONS，读取分配的paper_trial全文，完成当前独立评审。控制器会调用本角色3次，每次独立非持久会话；不得读另外两份评审或state/history。返回metrics全部9个整数轴（Originality/Quality/Clarity/Significance/Soundness/Presentation/Contribution各1–4，Overall1–10，Confidence1–5），以及review对象（Summary/Strengths/Weaknesses/Questions/Limitations/Ethical Concerns/Decision）。不要自己把3次调用合并成一次。交Main按ticket提交。",
+    "instructions": "Independent internal PaperOrchestra review: follow the knowledgeable, responsible, and charitable persona and complete AGENTREVIEW_INSTRUCTIONS in upstream/paper-orchestra/autoraters/agent_review.py. Read the assigned paper_trial in full and conduct this independent review. The controller invokes this role three times in separate, nonpersistent sessions; do not read the other reviews or state/history. Return all nine integer metric axes (Originality/Quality/Clarity/Significance/Soundness/Presentation/Contribution each 1–4, Overall 1–10, Confidence 1–5) and a review object (Summary/Strengths/Weaknesses/Questions/Limitations/Ethical Concerns/Decision). Do not merge the three calls yourself. Return the result to Main for ticket submission.",
     "numeric_axes": {
       "Originality": [
         1,
@@ -264,7 +264,7 @@
       "screenshots"
     ],
     "decisions": [],
-    "instructions": "依 PaperOrchestra content_refinement_agent.py 原prompt，用保留稿件、质量review、worklogs、ICLR指南、图表和不可变实验/citation_map修改；保存worklog与完整新tex，编译及视觉检查。最多3次；编译失败返回failed。控制器按Overall与分项gain/drop决定接受或丢弃，不能覆写旧稿。 failed时提供failure_kind：compile继续预算内重试；missing_tex或exception结束内容反思并保留旧稿。"
+    "instructions": "Follow the original prompt in PaperOrchestra content_refinement_agent.py. Revise the retained manuscript using its quality review, worklogs, ICLR guidelines, figures, and immutable experiment/citation_map. Save the worklog and complete new TeX; compile and visually inspect it. Allow at most three attempts; return failed if compilation fails. The controller accepts or discards based on Overall and per-axis gains/drops. Never overwrite the prior manuscript."
   },
   "format_review": {
     "required": [
@@ -274,7 +274,7 @@
       "Clean",
       "Fix"
     ],
-    "instructions": "按上游format_agent.py及ICLR2025 guidelines对保留稿件PDF逐页视觉审计：图表、边界、分页、标题、引用、长度等，保存结构化figure_and_tables及other_issues。Clean 或 Fix；上游只进行一次格式修复。"
+    "instructions": "Following upstream format_agent.py and ICLR 2025 guidelines, visually audit every page of the retained manuscript PDF. Check figures, tables, margins, pagination, headings, citations, length, and related issues; save structured figure_and_tables and other_issues. Return Clean or Fix. The upstream process permits one formatting repair."
   },
   "format_fix": {
     "required": [
@@ -284,70 +284,70 @@
       "screenshots"
     ],
     "decisions": [],
-    "instructions": "仅修复格式review指出的排版问题，不能改方法、数据、科学结论或引用语义。实际编译、渲染PDF；成功返回新稿，编译失败返回failed并保留旧稿。"
+    "instructions": "Fix only layout issues identified by the format review. Do not change methods, data, scientific conclusions, or citation meaning. Compile and render the PDF. On success, return the new manuscript; on compilation failure, return failed and retain the old manuscript."
   },
   "review_summary": {
     "required": [
       "context"
     ],
     "decisions": [],
-    "instructions": "ScholarPeer Appendix G.1：只阅读本轮稿件，提取稠密准确summary/core claims、方法、主要结果及证据，作为独立context对象；不得把作者对自己工作的推测当结论。"
+    "instructions": "ScholarPeer Appendix G.1: Read only the current-round manuscript. Extract a dense, accurate summary of core claims, methods, principal results, and evidence as an independent context object. Do not treat the authors' speculation about their work as established conclusions."
   },
   "review_literature": {
     "required": [
       "papers"
     ],
     "decisions": [],
-    "instructions": "ScholarPeer G.2：从summary独立研究subdomain，真实搜索并筛选顶级会议及arXiv文献，按submission cutoff严格过滤，形成有可核查引用的领域综述。不得仅复述稿件reference列表。"
+    "instructions": "ScholarPeer G.2: Independently research the subdomain from the summary. Search for and screen leading conference and arXiv literature, strictly applying the submission cutoff, and produce a field review with verifiable citations. Do not merely repeat the manuscript's reference list."
   },
   "review_expand": {
     "required": [
       "papers"
     ],
     "decisions": [],
-    "instructions": "ScholarPeer G.3：基于本轮已有文献发现遗漏/不足、进一步真实检索与扩展，合并新证据，保留日期与质量筛选。状态机执行完整3轮，不能把3轮说成一次搜索。"
+    "instructions": "ScholarPeer G.3: Identify omissions and gaps in this round's literature, conduct additional real searches, and integrate new evidence while retaining dates and quality screening. The state machine runs all three expansion rounds; do not describe three rounds as one search."
   },
   "review_historian": {
     "required": [
       "history"
     ],
     "decisions": [],
-    "instructions": "ScholarPeer G.4：把本轮综述与全部3轮扩展综合为按时间组织的domain narrative，描述子领域演变、主要里程碑、当前挑战和开放问题，保留引用。"
+    "instructions": "ScholarPeer G.4: Combine this round's review with all three expansion rounds into a chronological domain narrative. Describe the subfield's development, major milestones, current challenges, and open questions, retaining citations."
   },
   "review_baselines": {
     "required": [
       "baselines"
     ],
     "decisions": [],
-    "instructions": "ScholarPeer G.5：独立主动检索稿件对应任务/数据集的遗漏SOTA基线和数据集；保留截止日期、可比性、实际缺失理由及来源，不能仅比较作者列出的基线。"
+    "instructions": "ScholarPeer G.5: Independently search for omitted SOTA baselines and datasets relevant to the manuscript's task and datasets. Record the cutoff date, comparability, actual reasons for omissions, and sources. Do not limit comparison to baselines listed by the authors."
   },
   "novelty_questions": {
     "required": [
       "questions"
     ],
     "decisions": [],
-    "instructions": "ScholarPeer G.6 novelty：阅读本轮summary、全文、domain narrative、独立综述和missing baselines，拆解5个主要贡献声明，对每项生成一个简单直接、可交给未见稿件研究助手的novelty/significance问题。questions各有id和text；不要预填答案。"
+    "instructions": "ScholarPeer G.6 novelty: Read this round's summary, full manuscript, domain narrative, independent review, and missing-baseline analysis. Break down five main contribution claims and write one simple, direct novelty/significance question for each, suitable for a research assistant who has not seen the manuscript. Give every question an id and text; do not prefill answers."
   },
   "soundness_questions": {
     "required": [
       "questions"
     ],
     "decisions": [],
-    "instructions": "ScholarPeer G.6 soundness：独立阅读本轮全文和domain context，提出5个critical questions审查数学、逻辑、实验有效性、指标、假设；不读取novelty答案或上一轮review来诱导问题。"
+    "instructions": "ScholarPeer G.6 soundness: Independently read this round's full manuscript and domain context. Pose five critical questions about mathematics, logic, experimental validity, metrics, and assumptions. Do not read novelty answers or prior-round reviews when formulating questions."
   },
   "novelty_answer": {
     "required": [
       "answer"
     ],
     "decisions": [],
-    "instructions": "ScholarPeer G.7 novelty：仅用 Main 提供的 protocol next 裁剪包（question、summary/domain/literature/baselines、cutoff）进行主动外部检索并回答当前问题。你没有submission，不打开稿件、state.json、其他答案或工作历史；保存查询/来源/证据/未知。一次只答一个问题，独立会话。"
+    "instructions": "ScholarPeer G.7 novelty: Use only the cropped packet supplied by Main through protocol next (question, summary/domain/literature/baselines, cutoff) to conduct external research and answer the current question. You do not have the submission: do not open the manuscript, state.json, other answers, or work history. Save queries, sources, evidence, and unknowns. Answer one question per independent session."
   },
   "soundness_answer": {
     "required": [
       "answer"
     ],
     "decisions": [],
-    "instructions": "ScholarPeer G.7 technical soundness：只依本轮全文的数学、方法与实验证据及给定context回答当前问题，检查逻辑不一致、不可能的数学约束和不适当指标。禁用web，不读取novelty答案或历史review。一次一个问题，独立会话。"
+    "instructions": "ScholarPeer G.7 technical soundness: Answer the current question using only the current-round manuscript's mathematical, methodological, and experimental evidence and the supplied context. Check for logical inconsistencies, impossible mathematical constraints, and inappropriate metrics. Do not use the web or read novelty answers or prior reviews. Handle one question per independent session."
   },
   "peer_review": {
     "required": [
@@ -355,7 +355,7 @@
       "review"
     ],
     "decisions": [],
-    "instructions": "ScholarPeer G.8：聚合本轮summary、独立文献/domain/baselines及全部10个QA，按ICLR review guidelines形成具体review（summary、strengths、weaknesses、questions、limitations/ethics、confidence、1–10 overall score及理由）。只能用本稿本轮证据。8为停止阈值而非期望答案；Stanford Agentic Reviewer是held-out外部评价，不能读取反馈参与改稿。\n\n读取 scienceevolve-scientist-two Skill及references/protocol.md、本角色所列上游prompt/实现。只处理 protocol next 指定ticket；输出 references/contracts.json 所需字段和 artifacts/summary，保存至独立ticket目录的response.json后交回Main，不自行提交状态或调其他角色。真实工具/数据缺失返回blocked，实际执行失败返回failed，绝不伪造科学证据。不改已提交文件，不调用apply_workflow。 阅读 references/iclr-review-guidelines.md 作为G.8的review_guidelines输入。",
+    "instructions": "ScholarPeer G.8: Combine this round's summary, independent literature/domain/baseline work, and all ten Q&As into a specific review following the ICLR review guidelines. Include summary, strengths, weaknesses, questions, limitations/ethics, confidence, and a reasoned overall score from 1–10. Use evidence from this manuscript and round only. A score of 8 is a stopping threshold, not a desired answer. Stanford Agentic Reviewer is a held-out external evaluation; do not read its feedback or use it to revise the manuscript. Read references/iclr-review-guidelines.md as the review_guidelines input.",
     "review_fields": [
       "summary",
       "strengths",
@@ -370,7 +370,7 @@
       "plans"
     ],
     "decisions": [],
-    "instructions": "针对当前完整ScholarPeer review规划所有必要补充实验 plans，每项明确回应的问题、code change、数据/指标、命令和证据。不能仅生成回复信，不固定为一个实验。"
+    "instructions": "Plan all necessary supplemental experiments for the current complete ScholarPeer review. For each plan, specify the question addressed, code change, data/metrics, command, and evidence. Do not produce only a response letter, and do not assume there is just one experiment."
   },
   "rebuttal_coding": {
     "required": [
@@ -381,7 +381,7 @@
       "hypothesis"
     ],
     "decisions": [],
-    "instructions": "从best代码独立副本实际执行当前补实验context.plan，记录可重跑脚本、原始日志与结果，不能修改best使原结果失配。失败明确记录并重试当前项，所有项完成后才进入enhancer。"
+    "instructions": "Run the current supplemental-experiment context.plan from an independent copy of best code. Record rerunnable scripts, raw logs, and results. Do not change best in a way that invalidates its results. Record failures and retry the current item; proceed to the enhancer only after every item is complete."
   },
   "paper_enhancer": {
     "required": [
@@ -391,7 +391,7 @@
       "screenshots"
     ],
     "decisions": [],
-    "instructions": "把当前review、全部补实验结果及逐点回应真正写入稿件，更新表格、图、结论与局限；保留矛盾或负结果。保存新版本，实际编译和视觉检查，不能只交rebuttal文本。随后完整重跑ScholarPeer。"
+    "instructions": "Incorporate the current review, all supplemental-experiment results, and point-by-point responses into the manuscript itself. Update tables, figures, conclusions, and limitations; retain contradictions and negative results. Save a new version, compile and visually inspect it, and do not submit only rebuttal text. Then rerun the complete ScholarPeer review."
   },
   "meta_review": {
     "required": [
@@ -401,7 +401,7 @@
       "Accept",
       "Refine"
     ],
-    "instructions": "ScientistTwo §3.6：基于当前稿件与其最新peer review，给出Accept或Refine及战略性反馈。分数>=8不自动等于Meta Accept。一次meta改进后仍Refine由控制器明确预算耗尽，不冒充接受。"
+    "instructions": "ScientistTwo §3.6: Based on the current manuscript and its latest peer review, return Accept or Refine with strategic feedback. A score of 8 or higher does not automatically mean Meta Accept. If one meta refinement is used and the result remains Refine, the controller must report budget exhaustion rather than claim acceptance."
   },
   "reference_verify": {
     "required": [
@@ -411,7 +411,7 @@
       "Fix",
       "Pass"
     ],
-    "instructions": "§4.2 search-enhanced Reference Verifier：真实检索每条参考文献，核对作者/标题/日期/来源/引用所支持的论点，保留逐条证据；Pass或Fix，假的/错引的文献交Writer修正后复核。"
+    "instructions": "§4.2 search-enhanced Reference Verifier: Search for every reference and verify authors, title, date, venue/source, and whether it supports the cited claim. Retain evidence for each item. Return Pass or Fix; send fabricated or mis-cited references to the Writer for correction and recheck them."
   },
   "method_audit": {
     "required": [
@@ -421,7 +421,7 @@
       "Fix",
       "Pass"
     ],
-    "instructions": "§4.2 Method–Code Auditor：逐条核对当前稿件方法、公式、实现、超参、数据与实验命令/最佳代码/消融补实验的一致性，建立claim-to-code/measurement对照；Pass或Fix，必须检查真实代码，不能仅信作者总结。"
+    "instructions": "§4.2 Method–Code Auditor: Check every manuscript method, formula, implementation, hyperparameter, dataset, and experimental command against the best code, ablations, and supplemental experiments. Build a claim-to-code/measurement map. Return Pass or Fix. Inspect the actual code; do not rely only on the authors' summary."
   },
   "integrity_writer": {
     "required": [
@@ -431,7 +431,7 @@
       "screenshots"
     ],
     "decisions": [],
-    "instructions": "依据引用核验或method-code审计，只用真实来源、代码和已有实验修正稿件，不能篡改代码/测量来匹配夸大叙事。提交新tex/pdf/编译日志/页面，重走reference+method审计直至通过；缺证据blocked。"
+    "instructions": "Use reference verification or method-code audit findings to correct the manuscript using real sources, code, and existing experiments only. Do not alter code or measurements to support an exaggerated narrative. Submit new tex/pdf, compilation logs, and rendered pages; repeat reference and method audits until they pass. Return blocked when evidence is missing."
   },
   "score_reproduce": {
     "required": [
@@ -444,7 +444,7 @@
       "Fail",
       "Pass"
     ],
-    "instructions": "最终CoE score reproduction：在干净执行目录用best的可独立运行脚本及相同数据/种子/依赖真实重跑，逐指标比较已报告结果和预先指定统计容差。保存独立commands/logs/results和差异报告，Pass或Fail。不能把旧日志复制成重跑证据。"
+    "instructions": "Final CoE score reproduction: In a clean execution directory, rerun the independently executable best-version script with the same data, seeds, and dependencies. Compare every reported metric against its prespecified statistical tolerance. Save independent commands/logs/results and a discrepancy report; return Pass or Fail. Do not copy old logs as rerun evidence."
   },
   "final_spec_audit": {
     "required": [
@@ -454,20 +454,20 @@
       "Fail",
       "Pass"
     ],
-    "instructions": "最终CoE specification compliance：再次检查最终交付代码/重跑/稿件与原Task的全部约束，排除泄漏、违规改评测或资源超限；保存逐条证据并给出Pass或Fail。"
+    "instructions": "Final CoE specification compliance: Recheck the final deliverable code, rerun, and manuscript against every original Task constraint. Rule out leakage, unauthorized evaluation changes, and resource overruns. Save evidence for each check and return Pass or Fail."
   },
   "export": {
     "required": [
       "bundle"
     ],
     "decisions": [],
-    "instructions": "导出同一best版本的可执行代码、环境、运行脚本、完整结果、消融/补实验、tex/PDF、全部review和CoE证据及版本/来源清单。bundle指向冻结交付目录；明确outcome是meta_accept、meta_budget_exhausted还是retained_previous_best，不能把终止都写成Accept。"
+    "instructions": "Export executable code, environment, run scripts, complete results, ablations and supplemental experiments, tex/PDF, all reviews, CoE evidence, and a version/provenance manifest for the same best version. Point the bundle to the frozen delivery directory. State whether the outcome is meta_accept, meta_budget_exhausted, or retained_previous_best; do not label every termination Accept."
   },
   "draft_quality_merge": {
     "required": [
       "review"
     ],
     "decisions": [],
-    "instructions": "PaperOrchestra内部AgentReview汇总：读取本次3个独立评审，使用upstream/paper-orchestra/autoraters/agent_review.py的meta_reviewer_system_prompt与AGENTREVIEW_INSTRUCTIONS汇总完整review。不要读历史稿/历史评审；不是ScientistTwo外层meta_review。数值轴由控制器按原算法取3评审均值并round，不自行指定。汇总无法解析时返回failed供控制器保留第一份文本评审且仍聚合数值；服务不可用返回blocked。"
+    "instructions": "PaperOrchestra internal AgentReview aggregation: Read this run's three independent reviews and use meta_reviewer_system_prompt and AGENTREVIEW_INSTRUCTIONS from upstream/paper-orchestra/autoraters/agent_review.py to produce the complete review. Do not read prior manuscripts or reviews; this is not ScientistTwo's outer meta_review. The controller computes numerical axes by applying the original algorithm to the three-review mean and rounding; do not set them yourself. If aggregation cannot be parsed, return failed so the controller can retain the first text review and still aggregate scores. Return blocked if the service is unavailable."
   }
 }
