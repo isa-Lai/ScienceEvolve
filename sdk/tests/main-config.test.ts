@@ -158,4 +158,9 @@ describe("main workflow config uses main's actual contracts", () => {
       await expect(loadMainWorkflowConfig(file, { presetId: "missing" })).rejects.toThrow(/presetId/);
     } finally { await fs.rm(root, { recursive: true, force: true }); }
   });
+  it("supports binding agy harness and keeps nativeAgyProfileId out of portable workflows", () => {
+    const bound = bindMainWorkflowConfig(validateMainWorkflowConfig({}), { harness: "agy", model: "gemini-2.5-pro" });
+    expect(Object.values(bound.agents).every((agent) => agent.harness === "agy")).toBe(true);
+    expect(() => validateMainWorkflowConfig({ agents: { main: { nativeAgyProfileId: "login" } } })).toThrow(/profile values/);
+  });
 });

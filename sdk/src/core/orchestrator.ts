@@ -345,6 +345,7 @@ export class Orchestrator {
     private readonly hostLifecycle?: {
       beforePersist?: (context: { projectId: string; gitEnabled: boolean }) => Promise<void>;
       validateNativeCodexProfile?: (config: AgentConfig) => Promise<void>;
+      validateNativeAgyProfile?: (config: AgentConfig) => Promise<void>;
     }
   ) {
     this.scheduler = new AgentScheduler(
@@ -1260,9 +1261,13 @@ export class Orchestrator {
           reject(definition.name, `${definition.name} Agent 选择的 ${harness} harness 不支持 ${config.permission} 权限约束`);
         }
       }
+      if (config.nativeCodexProfileId && config.nativeAgyProfileId) {
+        reject(definition.name, "Agent cannot bind both a native Codex profile and a native Agy profile");
+        continue;
+      }
       if (config.nativeCodexProfileId) {
         try {
-          if (!harnessSupportsNativeProfile(harness) || config.gatewayId || config.gatewaySnapshot || config.gatewayReasoningOption ||
+          if (harness !== "codex" || !harnessSupportsNativeProfile(harness) || config.gatewayId || config.gatewaySnapshot || config.gatewayReasoningOption ||
             !this.hostLifecycle?.validateNativeCodexProfile) {
             throw new Error("Native Codex profile requires an explicit trusted host binding and cannot be mixed with a Gateway");
           }
@@ -1270,6 +1275,22 @@ export class Orchestrator {
         } catch (error) {
           reject(definition.name, error instanceof Error ? error.message : "Invalid native Codex profile binding");
         }
+        continue;
+      }
+      if (config.nativeAgyProfileId) {
+        try {
+          if (harness !== "agy" || !harnessSupportsNativeProfile(harness) || config.gatewayId || config.gatewaySnapshot || config.gatewayReasoningOption ||
+            !this.hostLifecycle?.validateNativeAgyProfile) {
+            throw new Error("Native Agy profile requires an explicit trusted host binding and cannot be mixed with a Gateway");
+          }
+          await this.hostLifecycle.validateNativeAgyProfile(config);
+        } catch (error) {
+          reject(definition.name, error instanceof Error ? error.message : "Invalid native Agy profile binding");
+        }
+        continue;
+      }
+      if (harness === "agy") {
+        reject(definition.name, `${definition.name} Agent 使用 agy harness 时必须绑定 nativeAgyProfileId`);
         continue;
       }
       if (!gatewayStore) continue;

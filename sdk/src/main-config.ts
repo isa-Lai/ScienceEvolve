@@ -8,7 +8,7 @@ import { validateProjectMcpReferences, type ProjectMcpDefinitions } from "./core
 import type { MainProjectInput } from "./main-project-inputs.js";
 
 export type MainWorkflowAgentConfig = Omit<AgentConfig,
-  "gatewayId" | "gatewaySnapshot" | "nativeCodexProfileId" | "legacyReasoningEffort" | "reasoningMigrationWarning"> & {
+  "gatewayId" | "gatewaySnapshot" | "nativeCodexProfileId" | "nativeAgyProfileId" | "legacyReasoningEffort" | "reasoningMigrationWarning"> & {
   /** @deprecated Accepted for old workflow compatibility only; main no longer applies per-Agent proxy policies. */
   proxy?: { mode: "inherit" | "direct" };
 };

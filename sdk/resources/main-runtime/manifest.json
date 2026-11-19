@@ -107,7 +107,7 @@
       "configSha256": "ff4bd6f94e96b4da543ea245f3ae3d9db4545a43976619d497afb93a128281b8"
     }
   },
-  "runtimeRevision": "61d257921a5c98903d305941e450b27e6a757af1+244f0999da8b5697",
+  "runtimeRevision": "61d257921a5c98903d305941e450b27e6a757af1+5b16d1f83fc9c54a",
   "files": [
     {
       "source": "server/src/acceptance-controller.ts",
@@ -240,10 +240,10 @@
     {
       "source": "server/src/agent-orchestration-reconfiguration.ts",
       "target": "src/core/agent-orchestration-reconfiguration.ts",
-      "sourceSha256": "8cfee5303a96affb3fa7b3524b88d85a5bc532addeb4a25f71abede9f1c3fda4",
+      "sourceSha256": "cbba6138911a85dfedb3bb92c84d2434b752104fc715e75e2c6b8d60a79c7702",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "8cfee5303a96affb3fa7b3524b88d85a5bc532addeb4a25f71abede9f1c3fda4"
+      "sha256": "cbba6138911a85dfedb3bb92c84d2434b752104fc715e75e2c6b8d60a79c7702"
     },
     {
       "source": "server/src/agent-orchestration.ts",
@@ -696,18 +696,18 @@
     {
       "source": "server/src/harness-runtime/adapters/adapter-utils.ts",
       "target": "src/core/harness-runtime/adapters/adapter-utils.ts",
-      "sourceSha256": "6dd7bd6a630cf5f797a7ef627cf3241cfe9058a3b870649ea96676841688b752",
+      "sourceSha256": "2316992954572e735423abfcd11805c7450c90dfa910406aeb36eff49b27dc33",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "6dd7bd6a630cf5f797a7ef627cf3241cfe9058a3b870649ea96676841688b752"
+      "sha256": "2316992954572e735423abfcd11805c7450c90dfa910406aeb36eff49b27dc33"
     },
     {
       "source": "server/src/harness-runtime/adapters/codex-adapter.ts",
       "target": "src/core/harness-runtime/adapters/codex-adapter.ts",
-      "sourceSha256": "dc8a9cc4d35e1e9b183481a8c04887f0ef14978ea7689b66d425c00193f36cd0",
+      "sourceSha256": "1473fcd6dc8c7dea67037e88d4ede1564007ce8690068ed3b99d8c555c72ec69",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "dc8a9cc4d35e1e9b183481a8c04887f0ef14978ea7689b66d425c00193f36cd0"
+      "sha256": "1473fcd6dc8c7dea67037e88d4ede1564007ce8690068ed3b99d8c555c72ec69"
     },
     {
       "source": "server/src/harness-runtime/adapters/codex-event-mapper.ts",
@@ -728,10 +728,10 @@
     {
       "source": "server/src/harness-runtime/adapters/dsh-adapter.ts",
       "target": "src/core/harness-runtime/adapters/dsh-adapter.ts",
-      "sourceSha256": "260b9c91675901857435a6dfc69d774a3779a8fa562e866390e01c5f118d0238",
+      "sourceSha256": "6622222a469987f23b87f909bb6b68ad0fd38b9c35f790e1dd24fcb111fc2c77",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "260b9c91675901857435a6dfc69d774a3779a8fa562e866390e01c5f118d0238"
+      "sha256": "6622222a469987f23b87f909bb6b68ad0fd38b9c35f790e1dd24fcb111fc2c77"
     },
     {
       "source": "server/src/harness-runtime/adapters/dsh-event-mapper.ts",
@@ -752,10 +752,10 @@
     {
       "source": "server/src/harness-runtime/adapters/pi-adapter.ts",
       "target": "src/core/harness-runtime/adapters/pi-adapter.ts",
-      "sourceSha256": "a6fb84e38fb32aa0f69c50603bf96cffc4a790f0ba9c1745b0b676b7a9ee7676",
+      "sourceSha256": "816545e1ce424890423068d65a61b421dad7484b20a5e603a810331d8e51e2c0",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "a6fb84e38fb32aa0f69c50603bf96cffc4a790f0ba9c1745b0b676b7a9ee7676"
+      "sha256": "816545e1ce424890423068d65a61b421dad7484b20a5e603a810331d8e51e2c0"
     },
     {
       "source": "server/src/harness-runtime/adapters/pi-event-mapper.ts",
@@ -784,10 +784,10 @@
     {
       "source": "server/src/harness-runtime/adapters/resident-adapter-factory.ts",
       "target": "src/core/harness-runtime/adapters/resident-adapter-factory.ts",
-      "sourceSha256": "2c2bbd9bab9b0ed2f24d4f03a1140e2101fc6bce0092b1c1161d237016963ce2",
+      "sourceSha256": "33c3d14a3be0aedb236c7352bb6948f5cc22ab6fd482553e17de87420c963ee0",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "2c2bbd9bab9b0ed2f24d4f03a1140e2101fc6bce0092b1c1161d237016963ce2"
+      "sha256": "33c3d14a3be0aedb236c7352bb6948f5cc22ab6fd482553e17de87420c963ee0"
     },
     {
       "source": "server/src/harness-runtime/background-jobs.ts",
@@ -864,10 +864,10 @@
     {
       "source": "server/src/harness-runtime/gateway-route.ts",
       "target": "src/core/harness-runtime/gateway-route.ts",
-      "sourceSha256": "f98627a4c7b56e7cae60c281b98682182b32ff52bba08970f26fedad9fb026b7",
+      "sourceSha256": "db61988d606461f03a20db38bb437c97b63a0e2a5eb9e9da27233a20ee5a8345",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "f98627a4c7b56e7cae60c281b98682182b32ff52bba08970f26fedad9fb026b7"
+      "sha256": "db61988d606461f03a20db38bb437c97b63a0e2a5eb9e9da27233a20ee5a8345"
     },
     {
       "source": "server/src/harness-runtime/invocation-inputs.ts",
@@ -920,10 +920,10 @@
     {
       "source": "server/src/harness-runtime/process-host.ts",
       "target": "src/core/harness-runtime/process-host.ts",
-      "sourceSha256": "6ccdac7e9df03e7d05d18997f4155a608b09d982eccacae3563e697db04cc26d",
+      "sourceSha256": "d0099b2a7d74f1381a6642783b2810aedf50de6fee60da15e05f1a9a6cab7b63",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "6ccdac7e9df03e7d05d18997f4155a608b09d982eccacae3563e697db04cc26d"
+      "sha256": "d0099b2a7d74f1381a6642783b2810aedf50de6fee60da15e05f1a9a6cab7b63"
     },
     {
       "source": "server/src/harness-runtime/prompt-catalog.ts",
@@ -944,26 +944,26 @@
     {
       "source": "server/src/harness-runtime/resident-lease.ts",
       "target": "src/core/harness-runtime/resident-lease.ts",
-      "sourceSha256": "166eaa810a2732d4c35c0cde048cb4b6f6d051431e12f2bf15e9326a64cfe79f",
+      "sourceSha256": "f03316357b45cd032d0331d9c9e3a1cb2af8bdde32ce30563eee581f66fcc4bb",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "166eaa810a2732d4c35c0cde048cb4b6f6d051431e12f2bf15e9326a64cfe79f"
+      "sha256": "f03316357b45cd032d0331d9c9e3a1cb2af8bdde32ce30563eee581f66fcc4bb"
     },
     {
       "source": "server/src/harness-runtime/resident-native-driver.ts",
       "target": "src/core/harness-runtime/resident-native-driver.ts",
-      "sourceSha256": "2c41291255c3dc70c3a368216c529a52a33f66754d57a692c45cd7b2fcc7a1e4",
+      "sourceSha256": "73c516a3efc7958e2bdd6ddbab147402e1a1bf6d4b22af7b6608000cc19a4dd2",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "2c41291255c3dc70c3a368216c529a52a33f66754d57a692c45cd7b2fcc7a1e4"
+      "sha256": "73c516a3efc7958e2bdd6ddbab147402e1a1bf6d4b22af7b6608000cc19a4dd2"
     },
     {
       "source": "server/src/harness-runtime/resident-runtime-adapter.ts",
       "target": "src/core/harness-runtime/resident-runtime-adapter.ts",
-      "sourceSha256": "827eeabff940620c42031c43257f09f7228cbe653a53d519d8fb86f5c2a83ac1",
+      "sourceSha256": "ef29423a6778909d8ac8d6e5c048212192f7913ef284a5dd0cce3fb2c41557c5",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "827eeabff940620c42031c43257f09f7228cbe653a53d519d8fb86f5c2a83ac1"
+      "sha256": "ef29423a6778909d8ac8d6e5c048212192f7913ef284a5dd0cce3fb2c41557c5"
     },
     {
       "source": "server/src/harness-runtime/runtime-support.ts",
@@ -976,10 +976,10 @@
     {
       "source": "server/src/harness-runtime/runtime.ts",
       "target": "src/core/harness-runtime/runtime.ts",
-      "sourceSha256": "f2f94c1d64001db820ec9b6051b548543e0a1bf4a6b358a8ff383d6ead5cdce1",
+      "sourceSha256": "710b74f3a62d8bf87a140cee841d88ae932da167833244367a153edf922a7469",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "f2f94c1d64001db820ec9b6051b548543e0a1bf4a6b358a8ff383d6ead5cdce1"
+      "sha256": "710b74f3a62d8bf87a140cee841d88ae932da167833244367a153edf922a7469"
     },
     {
       "source": "server/src/harness-runtime/selected-skills.ts",
@@ -1304,10 +1304,10 @@
     {
       "source": "server/src/orchestrator.ts",
       "target": "src/core/orchestrator.ts",
-      "sourceSha256": "dd55868aeafb8df193e473b406d0e0bb11fc5526484cd1ef43aecf9e47de3379",
+      "sourceSha256": "149424b167d1e246ff6252ab7dfc0fd2de8369d3a50de63dde0f0beed9a3dc7c",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "dd55868aeafb8df193e473b406d0e0bb11fc5526484cd1ef43aecf9e47de3379"
+      "sha256": "149424b167d1e246ff6252ab7dfc0fd2de8369d3a50de63dde0f0beed9a3dc7c"
     },
     {
       "source": "server/src/project-directory-aliases.ts",
@@ -1456,10 +1456,10 @@
     {
       "source": "server/src/scoped-agent-configuration.ts",
       "target": "src/core/scoped-agent-configuration.ts",
-      "sourceSha256": "c3a94578fdbe4f2a15d3f109757eed74521b9a5eaa5609cda79f1c7903c8503a",
+      "sourceSha256": "7d145bb6fe660b2bfe131f71c088921a5ed06e910fc0087873c7a4e916037187",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "c3a94578fdbe4f2a15d3f109757eed74521b9a5eaa5609cda79f1c7903c8503a"
+      "sha256": "7d145bb6fe660b2bfe131f71c088921a5ed06e910fc0087873c7a4e916037187"
     },
     {
       "source": "server/src/scoped-agent-delivery-integrator.ts",
@@ -1696,10 +1696,10 @@
     {
       "source": "server/src/types.ts",
       "target": "src/core/types.ts",
-      "sourceSha256": "b3dd32312b89adb5afc02ba0f2eae693ad05808a2d8fd157eed67d3643c0c94b",
+      "sourceSha256": "117438dd94d217af1afb4aeae240a77362e5d1d9ed24774a5b5c07fa3fa7575a",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "b3dd32312b89adb5afc02ba0f2eae693ad05808a2d8fd157eed67d3643c0c94b"
+      "sha256": "117438dd94d217af1afb4aeae240a77362e5d1d9ed24774a5b5c07fa3fa7575a"
     },
     {
       "source": "server/src/utils.ts",
@@ -1712,10 +1712,10 @@
     {
       "source": "server/src/validation.ts",
       "target": "src/core/validation.ts",
-      "sourceSha256": "f744507afa72392ad9392ca08167dfb820000199b4a912bc3a997799593b031f",
+      "sourceSha256": "7e20b9fdeeb5691b2865a014691a3adb880a4b8bf7d5e7f8a247223928509bb0",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "f744507afa72392ad9392ca08167dfb820000199b4a912bc3a997799593b031f"
+      "sha256": "7e20b9fdeeb5691b2865a014691a3adb880a4b8bf7d5e7f8a247223928509bb0"
     },
     {
       "source": "server/src/workflow-adjustment-impact.ts",
@@ -1776,10 +1776,10 @@
     {
       "source": "server/src/workflow-reconfiguration.ts",
       "target": "src/core/workflow-reconfiguration.ts",
-      "sourceSha256": "032ebd05837939f914e52b6131e82d0aaf5dcb8992279ff400410bd0b03592fe",
+      "sourceSha256": "98fb9bebfba41c2bd704298b8af9a48557b60865058e21c049b055a234933620",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "032ebd05837939f914e52b6131e82d0aaf5dcb8992279ff400410bd0b03592fe"
+      "sha256": "98fb9bebfba41c2bd704298b8af9a48557b60865058e21c049b055a234933620"
     },
     {
       "source": "server/src/workflow-recovery.ts",

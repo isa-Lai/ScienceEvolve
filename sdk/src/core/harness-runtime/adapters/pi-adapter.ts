@@ -88,7 +88,7 @@ export class PiAdapter extends AdapterBase implements HarnessAdapter {
   }
 
   async run(context: HarnessAdapterContext): Promise<AgentRunResult> {
-    if ("nativeCodexProfileHome" in context.route) throw new Error("Pi requires a Gateway route");
+    if ("nativeCodexProfileHome" in context.route || "nativeAgyProfileHome" in context.route) throw new Error("Pi requires a Gateway route");
     const executable = await this.resolveExecutable();
     if (!executable) {
       throw new HarnessRuntimeError(

@@ -97,6 +97,9 @@ export class CodexAdapter extends AdapterBase implements HarnessAdapter {
         { source: "runtime" }
       );
     }
+    if ("nativeAgyProfileHome" in route) {
+      throw new Error("Codex cannot use a native agy profile route");
+    }
     const sourceGateway = sourceConfig.gatewaySnapshot;
     if (!sourceGateway && !("nativeCodexProfileHome" in route)) throw new Error("Codex requires a validated model route");
     const explainerPrompt = spec.prompt;

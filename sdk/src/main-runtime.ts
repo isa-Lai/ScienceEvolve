@@ -25,7 +25,7 @@ import { trackMainResidents, trackResidentOpens } from "./main-resident-tracker.
 import { MainSourceWorkspaceStore } from "./main-source-workspace.js";
 import { MainProjectWorkspaceStore } from "./main-project-workspace.js";
 import { MainGitWorkspaceStore } from "./main-git-workspace.js";
-import { MainNativeCodexProfiles } from "./main-native-profiles.js";
+import { MainNativeAgyProfiles, MainNativeCodexProfiles } from "./main-native-profiles.js";
 import { SiiExperimentService } from "./core/sii-experiments.js";
 import type { MainResearchSdkOptions } from "./main-options.js";
 import { createSdkHarnessRuntime } from "./host/harness-adapters.js";
@@ -48,6 +48,7 @@ export interface MainApplicationRuntimeOptions {
   skillRoots?: string[];
   userSkillRoot?: string;
   nativeCodexProfiles?: Record<string, string>;
+  nativeAgyProfiles?: Record<string, string>;
   /** Explicit opt-in; this host owns the service lifecycle. */
   sii?: MainResearchSdkOptions["sii"];
   runnerOptions?: HarnessRuntimeOptions;
@@ -124,6 +125,8 @@ export async function createMainApplicationRuntime(options: MainApplicationRunti
     const fresh = await requireDedicatedDirectory(root);
     const nativeProfiles = new MainNativeCodexProfiles();
     await nativeProfiles.initialize(root, options.nativeCodexProfiles, fresh);
+    const nativeAgyProfiles = new MainNativeAgyProfiles();
+    await nativeAgyProfiles.initialize(root, options.nativeAgyProfiles, fresh);
     const sourceWorkspaces = new MainSourceWorkspaceStore(root);
     await sourceWorkspaces.initialize(fresh);
     const projectWorkspaces = new MainProjectWorkspaceStore(root);
@@ -162,6 +165,7 @@ export async function createMainApplicationRuntime(options: MainApplicationRunti
         inspireWorkspaceRoot: options.sii!.workspaceRoot
       } : {}),
       resolveNativeCodexProfile: (id) => nativeProfiles.resolve(id),
+      resolveNativeAgyProfile: (id) => nativeAgyProfiles.resolve(id),
       resolveProjectWorkspace: (id) => projectWorkspaces.resolve(id),
       validateGatewayTarget: (url) => gatewayStore.assertAllowedNetworkTarget(url)
     });
@@ -199,7 +203,8 @@ export async function createMainApplicationRuntime(options: MainApplicationRunti
       retryBaseMs: 2_000, retryMaxMs: 60_000, ...options.execution
     }, gatewayStore, collaborationRuntime, undefined, {
       beforePersist: async ({ projectId }) => { await sourceWorkspaces.bindDefault(projectId); },
-      validateNativeCodexProfile: async (config) => { await nativeProfiles.resolve(config.nativeCodexProfileId!); }
+      validateNativeCodexProfile: async (config) => { await nativeProfiles.resolve(config.nativeCodexProfileId!); },
+      validateNativeAgyProfile: async (config) => { await nativeAgyProfiles.resolve(config.nativeAgyProfileId!); }
     });
     await engine.initialize();
     await siiExperiments?.start();

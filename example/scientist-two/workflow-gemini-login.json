@@ -1,0 +1,1595 @@
+{
+  "schemaVersion": 2,
+  "name": "ScientistTwo: End-to-End Research, Writing, and Review Workflow",
+  "agents": {
+    "main": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Run the complete ScientistTwo workflow using the scienceevolve-scientist-two Skill. Read the protocol and role contracts first. In the Task workspace, run scripts/protocol.py init only once, then run next. Dispatch the current ticket, role, cropped context, and required output fields to the single designated workflow agent; Main must not make scientific judgments. After the worker finishes, validate its files, submit its response, and route according to the next result. Finish only when role is empty. For blocked work, resolve the actual environment, data, or tool issue and resume the same role; do not skip stages or change budgets. Preserve script and SDK state for resumption; never reinitialize existing state. no_successful_idea is a valid scientific failure outcome and must not produce a paper. For other outcomes, export the complete package, select the deliverable with select_display, then call complete_project and report the exact outcome. Budgets: 3 initial candidates, seed pool of 6, 4 total rounds, then 1 evolved idea plus 1 seed, and S=4; see the protocol for remaining limits. Autonomous research and recovery policy: Never request user intervention or clarification. Use the supplied question, project files, evidence, web search, and available tools to make and record reasonable research decisions. When a method, baseline, dataset, or resource is unavailable or incompatible, investigate alternatives, test feasible options, and select the strongest honest adaptation. You may revise the method, scope, or operational assumptions when needed, while preserving data integrity, fixed evaluation data after results are observed, and reproducibility. Label proxies, synthetic workloads, and deviations plainly; never claim an adaptation reproduces a paper or validates real hardware when it does not. Do not stop at the first blocked ticket or failed approach: diagnose it, try another defensible path, and document the decision. Declare a terminal blocker or scientific failure only after documenting why no safe, feasible, evidence-backed path remains. Do not modify the workflow or run the entire upstream autonomous system as a tool.",
+      "permission": "workspace",
+      "webSearch": true,
+      "sessionPersistence": true,
+      "decisionBy": "main"
+    },
+    "task_setup": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Build the Task from the request and actual source materials. Capture the scientific question; original SOTA paper, code, and full results; fixed representative subset; all datasets, metric directions, and statistical methods; permitted changes; execution commands and resources; Google Search and Semantic Scholar availability; literature cutoff; and the shared novelty rubric. Confirm data, runtime, search, LaTeX, and PDF visual-inspection tools are available. Freeze the benchmark, subset, and constraints; never change the test set to improve scores. Include all protocol-required Task fields and report any replacement of the paper's original model. Do not request user decisions for missing task details. Use source evidence and available resources to make explicit, conservative task-level assumptions, record them and their limitations, and proceed. Return blocked only after documenting that all feasible alternatives were explored and no evidence-backed path remains.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": true,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "limitation_extract": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "ScientistTwo §3.1: Read the problem, original SOTA, and prior verifier feedback. On the first pass, identify every actionable limitation; on later passes, add missing limitations while retaining the original set. Do not present an unchanged set as an expansion.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": true,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "limitation_verify": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Independently determine whether the actionable limitations are sufficient to support a new improvement. Return Sufficient or Expand and identify each gap. The controller manages up to 16 rounds; retain unresolved limitations at the limit and never fabricate successful verification.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "seed_generate": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Generate h0 on the first pass. On later passes, review all existing ideas and novelty scores, then propose one distinct idea that aims for higher novelty. Each idea={id,hypothesis,...} must identify the limitation it addresses, an executable algorithm, and a validation method. Do not alter the original seed.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": true,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "novelty_check": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Use Google Search to retrieve the two most relevant reference papers, verify the original sources and cutoff date, and score the candidate seed with the frozen rubric. Record novelty, overlap, and uncertainty. Provide exactly two references, each with {url,retrieval_evidence}, and include retrieval receipts in artifacts. Never invent citations from memory.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": true,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "baseline_coding": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Reproduce the original human SOTA's main experiment on the frozen representative subset. Save E_base/C_base, environment, seeds, exact commands, exit codes, raw logs, and every metric. Provide an independently rerunnable script. Do not report full-paper table values as local subset results.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "subset_coding": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Create a fresh candidate-code copy from immutable C_base, implement the current h, and execute it on the same subset with all metrics. Save h/E/C, commands, and logs. Use a separate directory for every run; do not alter the baseline or committed evidence.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "subset_critic": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Compare all candidate subset datasets, metrics, and logs against E_base. Independently return Good (consistently better than baseline), Bad (clearly worse), or Engineer (promising but needing engineering fixes), with evidence and recommendations. Do not impose an arbitrary single-scalar ranking.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "subset_engineering": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Use the subset critic's engineering diagnosis to improve the implementation or tune parameters in a fresh candidate copy. Preserve the hypothesis and benchmark constraints, then rerun the complete subset. The state machine allows at most two engineering attempts. Retain diagnostics after failure; never substitute expected results.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "full_coding": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Extend only a subset-Good version to the full benchmark, covering every dataset and metric. Execute it and record full code, results, logs, commands, and hypothesis. Compare against the original human SOTA's full results; rerunning only the subset is insufficient.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "full_critic": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Compare measured full-benchmark results against the original SOTA across every dataset and metric. Return Good/Bad/Engineer with evidence and repair recommendations. A subset win does not establish a full-benchmark Good result.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "full_engineering": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Use context.refinement to identify the source: null means a full-critic engineering loop, ablation means ablation feedback, and meta means meta-review feedback. Create a fresh code copy from the corresponding current version or best, make the improvement, and rerun the full benchmark. Preserve h_new/E_new/C_new without overwriting best; Result Comparison decides whether to replace it.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "spec_filter": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "After every coding or engineering run, check task constraints, data splits and leakage, permitted changes, metric scripts, budget, and output provenance. Inspect actual code diffs, commands, and logs; return Pass or Reject with evidence. Noncompliant results must not reach the critic, best, ablations, or supplemental-experiment summaries.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "idea_evolve": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "§3.3: Review the complete event history from every prior round, including successful and Bad h/E/C/decision/feedback records, engineering attempts, and failure logs. Propose one evolved idea and explain how its parent and diagnostic evidence changed the hypothesis. This is not the workflow Evolver and must not alter orchestration. The controller adds a separate, unevaluated high-novelty seed.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": true,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "selector": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Among all full-benchmark Good candidates, select the best candidate ID using all benchmark metrics and execution logs. Explain metric tradeoffs; do not replace the original comparison with a weighted scalar score. Preserve the matching h_best/E_best/C_best version.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "ablation_plan": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Plan a complete component-level ablation set for the current best: plans=[{id,intervention,comparison,command,expected_evidence},...]. Isolate each component and its contribution. Let the actual method determine the number of ablations; do not hard-code one. Replan whenever best changes.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "ablation_coding": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Execute only the current context.plan. Implement the ablation in a fresh copy of best, run it, and save rerunnable code, logs, and results. Do not modify best. The controller summarizes only after all plans are executed; retry a failed item and do not omit it.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "ablation_critic": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Review all ablation results and explain gains, redundancy, and harmful components. Return Good or Refine and specify the hypothesis and components to improve. At most one ablation-driven full refinement is allowed; if it improves best, rerun the complete ablation suite.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "result_comparison": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Independently compare the trial experiment with immutable best on the same full benchmark, using all metrics, statistical evidence, and logs. Return Better only when it is strictly better; ties, regressions, or insufficient evidence are NotBetter. Manuscript quality or reviewer scores cannot substitute for performance.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "draft_outline": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "PaperOrchestra standard writing entry: create outline.json from the best idea, actual experiment and ablation logs, figures, and ICLR 2025 template/guidelines, following all instructions in upstream/paper-orchestra/methods/prompts/outline_agent.py. Preserve intro_related_work_plan, section_plan, and citation_hints. Do not invent results.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "draft_literature": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Follow the complete upstream PaperOrchestra HybridLiteratureAgent protocol and prompts/literature_review_agent.py. Collect and deduplicate tasks from introduction search directions, each related-work subsection query, and chapter citation_hints. Use at most three Google searches per task; retrieve real Semantic Scholar metadata, match titles, filter dates, and deduplicate registrations. Produce references.bib, citation_map, outline_v1, and introduction/related-work LaTeX. Follow all search and citation-injection details in methods/agents/literature_review_agent.py; do not invoke the autonomous agent as a black box. Run independent queries concurrently when tools permit, consolidate all results, and do not drop tasks when rate limited.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": true,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "draft_figures": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Prepare all experimental figures, tables, and method diagrams from real data and rerunnable plotting scripts. Inspect each for labels, statistical error, legends, and consistency with the method; provide a figures inventory and source-data paths. Use the standard PaperOrchestra figure-injection mechanism; generated illustrations cannot replace scientific plots. If the optional PlottingAgent mode is enabled, follow its per-figure planning, generation, and up-to-three visual-critic revisions, retaining logs.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "draft_sections": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Follow the original prompt in upstream section_writing_agent.py. Write every section from the complete outline, citation_map, figure information, immutable experiment logs, and ICLR 2025 requirements. Compile a PDF with the supplied template, render and inspect pages, and save tex, pdf, compile_log, and screenshots as evidence. Do not submit only body text or omit references. Allow at most three overall attempts for entry-point technical failures.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "draft_quality": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Independent internal PaperOrchestra review: follow the knowledgeable, responsible, and charitable persona and complete AGENTREVIEW_INSTRUCTIONS in upstream/paper-orchestra/autoraters/agent_review.py. Read the assigned paper_trial in full and conduct this independent review. The controller invokes this role three times in separate, nonpersistent sessions; do not read the other reviews or state/history. Return all nine integer metric axes (Originality/Quality/Clarity/Significance/Soundness/Presentation/Contribution each 1–4, Overall 1–10, Confidence 1–5) and a review object (Summary/Strengths/Weaknesses/Questions/Limitations/Ethical Concerns/Decision). Do not merge the three calls yourself. Return the result to Main for ticket submission.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "content_refine": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Follow the original prompt in PaperOrchestra content_refinement_agent.py. Revise the retained manuscript using its quality review, worklogs, ICLR guidelines, figures, and immutable experiment/citation_map. Save the worklog and complete new TeX; compile and visually inspect it. Allow at most three attempts; return failed if compilation fails. The controller accepts or discards based on Overall and per-axis gains/drops. Never overwrite the prior manuscript.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "format_review": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Following upstream format_agent.py and ICLR 2025 guidelines, visually audit every page of the retained manuscript PDF. Check figures, tables, margins, pagination, headings, citations, length, and related issues; save structured figure_and_tables and other_issues. Return Clean or Fix. The upstream process permits one formatting repair.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "format_fix": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Fix only layout issues identified by the format review. Do not change methods, data, scientific conclusions, or citation meaning. Compile and render the PDF. On success, return the new manuscript; on compilation failure, return failed and retain the old manuscript.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "review_summary": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "ScholarPeer Appendix G.1: Read only the current-round manuscript. Extract a dense, accurate summary of core claims, methods, principal results, and evidence as an independent context object. Do not treat the authors' speculation about their work as established conclusions.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "review_literature": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "ScholarPeer G.2: Independently research the subdomain from the summary. Search for and screen leading conference and arXiv literature, strictly applying the submission cutoff, and produce a field review with verifiable citations. Do not merely repeat the manuscript's reference list.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": true,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "review_expand": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "ScholarPeer G.3: Identify omissions and gaps in this round's literature, conduct additional real searches, and integrate new evidence while retaining dates and quality screening. The state machine runs all three expansion rounds; do not describe three rounds as one search.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": true,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "review_historian": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "ScholarPeer G.4: Combine this round's review with all three expansion rounds into a chronological domain narrative. Describe the subfield's development, major milestones, current challenges, and open questions, retaining citations.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "review_baselines": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "ScholarPeer G.5: Independently search for omitted SOTA baselines and datasets relevant to the manuscript's task and datasets. Record the cutoff date, comparability, actual reasons for omissions, and sources. Do not limit comparison to baselines listed by the authors.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": true,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "novelty_questions": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "ScholarPeer G.6 novelty: Read this round's summary, full manuscript, domain narrative, independent review, and missing-baseline analysis. Break down five main contribution claims and write one simple, direct novelty/significance question for each, suitable for a research assistant who has not seen the manuscript. Give every question an id and text; do not prefill answers.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "soundness_questions": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "ScholarPeer G.6 soundness: Independently read this round's full manuscript and domain context. Pose five critical questions about mathematics, logic, experimental validity, metrics, and assumptions. Do not read novelty answers or prior-round reviews when formulating questions.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "novelty_answer": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "ScholarPeer G.7 novelty: Use only the cropped packet supplied by Main through protocol next (question, summary/domain/literature/baselines, cutoff) to conduct external research and answer the current question. You do not have the submission: do not open the manuscript, state.json, other answers, or work history. Save queries, sources, evidence, and unknowns. Answer one question per independent session.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": true,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "soundness_answer": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "ScholarPeer G.7 technical soundness: Answer the current question using only the current-round manuscript's mathematical, methodological, and experimental evidence and the supplied context. Check for logical inconsistencies, impossible mathematical constraints, and inappropriate metrics. Do not use the web or read novelty answers or prior reviews. Handle one question per independent session.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "peer_review": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "ScholarPeer G.8: Combine this round's summary, independent literature/domain/baseline work, and all ten Q&As into a specific review following the ICLR review guidelines. Include summary, strengths, weaknesses, questions, limitations/ethics, confidence, and a reasoned overall score from 1–10. Use evidence from this manuscript and round only. A score of 8 is a stopping threshold, not a desired answer. Stanford Agentic Reviewer is a held-out external evaluation; do not read its feedback or use it to revise the manuscript. Read references/iclr-review-guidelines.md as the review_guidelines input.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "rebuttal_plan": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Plan all necessary supplemental experiments for the current complete ScholarPeer review. For each plan, specify the question addressed, code change, data/metrics, command, and evidence. Do not produce only a response letter, and do not assume there is just one experiment.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "rebuttal_coding": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Run the current supplemental-experiment context.plan from an independent copy of best code. Record rerunnable scripts, raw logs, and results. Do not change best in a way that invalidates its results. Record failures and retry the current item; proceed to the enhancer only after every item is complete.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "paper_enhancer": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Incorporate the current review, all supplemental-experiment results, and point-by-point responses into the manuscript itself. Update tables, figures, conclusions, and limitations; retain contradictions and negative results. Save a new version, compile and visually inspect it, and do not submit only rebuttal text. Then rerun the complete ScholarPeer review.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "meta_review": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "ScientistTwo §3.6: Based on the current manuscript and its latest peer review, return Accept or Refine with strategic feedback. A score of 8 or higher does not automatically mean Meta Accept. If one meta refinement is used and the result remains Refine, the controller must report budget exhaustion rather than claim acceptance.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "reference_verify": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "§4.2 search-enhanced Reference Verifier: Search for every reference and verify authors, title, date, venue/source, and whether it supports the cited claim. Retain evidence for each item. Return Pass or Fix; send fabricated or mis-cited references to the Writer for correction and recheck them.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": true,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "method_audit": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "§4.2 Method–Code Auditor: Check every manuscript method, formula, implementation, hyperparameter, dataset, and experimental command against the best code, ablations, and supplemental experiments. Build a claim-to-code/measurement map. Return Pass or Fix. Inspect the actual code; do not rely only on the authors' summary.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "integrity_writer": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Use reference verification or method-code audit findings to correct the manuscript using real sources, code, and existing experiments only. Do not alter code or measurements to support an exaggerated narrative. Submit new tex/pdf, compilation logs, and rendered pages; repeat reference and method audits until they pass. Return blocked when evidence is missing.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "score_reproduce": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Final CoE score reproduction: In a clean execution directory, rerun the independently executable best-version script with the same data, seeds, and dependencies. Compare every reported metric against its prespecified statistical tolerance. Save independent commands/logs/results and a discrepancy report; return Pass or Fail. Do not copy old logs as rerun evidence.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "final_spec_audit": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Final CoE specification compliance: Recheck the final deliverable code, rerun, and manuscript against every original Task constraint. Rule out leakage, unauthorized evaluation changes, and resource overruns. Save evidence for each check and return Pass or Fail.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "export": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "Export executable code, environment, run scripts, complete results, ablations and supplemental experiments, tex/PDF, all reviews, CoE evidence, and a version/provenance manifest for the same best version. Point the bundle to the frozen delivery directory. State whether the outcome is meta_accept, meta_budget_exhausted, or retained_previous_best; do not label every termination Accept.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    },
+    "draft_quality_merge": {
+      "model": "gemini-4-neon-high",
+      "harness": "agy",
+      "proxy": {
+        "mode": "direct"
+      },
+      "skills": [
+        "./skills/scienceevolve-scientist-two"
+      ],
+      "autoSkills": [],
+      "mcpServers": [],
+      "instructions": "PaperOrchestra internal AgentReview aggregation: Read this run's three independent reviews and use meta_reviewer_system_prompt and AGENTREVIEW_INSTRUCTIONS from upstream/paper-orchestra/autoraters/agent_review.py to produce the complete review. Do not read prior manuscripts or reviews; this is not ScientistTwo's outer meta_review. The controller computes numerical axes by applying the original algorithm to the three-review mean and rounding; do not set them yourself. If aggregation cannot be parsed, return failed so the controller can retain the first text review and still aggregate scores. Return blocked if the service is unavailable.\n\nRead the scienceevolve-scientist-two Skill, references/protocol.md, and the upstream prompts and implementations listed for this role. Handle only the ticket specified by protocol next. Produce the fields required by references/contracts.json and artifacts/summary, save them in response.json in the ticket-specific directory, and return the response to Main. Do not commit state or dispatch other roles yourself. If a required tool or data source is unavailable, first investigate and try feasible alternatives; do not request user input. Return blocked only after documenting why no safe, reproducible alternative exists. If execution fails, diagnose and try an appropriate recovery before reporting failure. Never fabricate scientific evidence. Do not modify committed files or call apply_workflow.",
+      "permission": "workspace",
+      "webSearch": false,
+      "sessionPersistence": false,
+      "decisionBy": "main"
+    }
+  },
+  "orchestration": {
+    "agents": [
+      {
+        "name": "main",
+        "template": "main"
+      },
+      {
+        "name": "task_setup",
+        "template": "general"
+      },
+      {
+        "name": "limitation_extract",
+        "template": "general"
+      },
+      {
+        "name": "limitation_verify",
+        "template": "general"
+      },
+      {
+        "name": "seed_generate",
+        "template": "general"
+      },
+      {
+        "name": "novelty_check",
+        "template": "general"
+      },
+      {
+        "name": "baseline_coding",
+        "template": "general"
+      },
+      {
+        "name": "subset_coding",
+        "template": "general"
+      },
+      {
+        "name": "subset_critic",
+        "template": "general"
+      },
+      {
+        "name": "subset_engineering",
+        "template": "general"
+      },
+      {
+        "name": "full_coding",
+        "template": "general"
+      },
+      {
+        "name": "full_critic",
+        "template": "general"
+      },
+      {
+        "name": "full_engineering",
+        "template": "general"
+      },
+      {
+        "name": "spec_filter",
+        "template": "general"
+      },
+      {
+        "name": "idea_evolve",
+        "template": "general"
+      },
+      {
+        "name": "selector",
+        "template": "general"
+      },
+      {
+        "name": "ablation_plan",
+        "template": "general"
+      },
+      {
+        "name": "ablation_coding",
+        "template": "general"
+      },
+      {
+        "name": "ablation_critic",
+        "template": "general"
+      },
+      {
+        "name": "result_comparison",
+        "template": "general"
+      },
+      {
+        "name": "draft_outline",
+        "template": "general"
+      },
+      {
+        "name": "draft_literature",
+        "template": "general"
+      },
+      {
+        "name": "draft_figures",
+        "template": "general"
+      },
+      {
+        "name": "draft_sections",
+        "template": "general"
+      },
+      {
+        "name": "draft_quality",
+        "template": "general"
+      },
+      {
+        "name": "content_refine",
+        "template": "general"
+      },
+      {
+        "name": "format_review",
+        "template": "general"
+      },
+      {
+        "name": "format_fix",
+        "template": "general"
+      },
+      {
+        "name": "review_summary",
+        "template": "general"
+      },
+      {
+        "name": "review_literature",
+        "template": "general"
+      },
+      {
+        "name": "review_expand",
+        "template": "general"
+      },
+      {
+        "name": "review_historian",
+        "template": "general"
+      },
+      {
+        "name": "review_baselines",
+        "template": "general"
+      },
+      {
+        "name": "novelty_questions",
+        "template": "general"
+      },
+      {
+        "name": "soundness_questions",
+        "template": "general"
+      },
+      {
+        "name": "novelty_answer",
+        "template": "general"
+      },
+      {
+        "name": "soundness_answer",
+        "template": "general"
+      },
+      {
+        "name": "peer_review",
+        "template": "general"
+      },
+      {
+        "name": "rebuttal_plan",
+        "template": "general"
+      },
+      {
+        "name": "rebuttal_coding",
+        "template": "general"
+      },
+      {
+        "name": "paper_enhancer",
+        "template": "general"
+      },
+      {
+        "name": "meta_review",
+        "template": "general"
+      },
+      {
+        "name": "reference_verify",
+        "template": "general"
+      },
+      {
+        "name": "method_audit",
+        "template": "general"
+      },
+      {
+        "name": "integrity_writer",
+        "template": "general"
+      },
+      {
+        "name": "score_reproduce",
+        "template": "general"
+      },
+      {
+        "name": "final_spec_audit",
+        "template": "general"
+      },
+      {
+        "name": "export",
+        "template": "general"
+      },
+      {
+        "name": "draft_quality_merge",
+        "template": "general"
+      }
+    ],
+    "routes": {
+      "main": [
+        {
+          "target": "task_setup",
+          "kind": "weak"
+        },
+        {
+          "target": "limitation_extract",
+          "kind": "weak"
+        },
+        {
+          "target": "limitation_verify",
+          "kind": "weak"
+        },
+        {
+          "target": "seed_generate",
+          "kind": "weak"
+        },
+        {
+          "target": "novelty_check",
+          "kind": "weak"
+        },
+        {
+          "target": "baseline_coding",
+          "kind": "weak"
+        },
+        {
+          "target": "subset_coding",
+          "kind": "weak"
+        },
+        {
+          "target": "subset_critic",
+          "kind": "weak"
+        },
+        {
+          "target": "subset_engineering",
+          "kind": "weak"
+        },
+        {
+          "target": "full_coding",
+          "kind": "weak"
+        },
+        {
+          "target": "full_critic",
+          "kind": "weak"
+        },
+        {
+          "target": "full_engineering",
+          "kind": "weak"
+        },
+        {
+          "target": "spec_filter",
+          "kind": "weak"
+        },
+        {
+          "target": "idea_evolve",
+          "kind": "weak"
+        },
+        {
+          "target": "selector",
+          "kind": "weak"
+        },
+        {
+          "target": "ablation_plan",
+          "kind": "weak"
+        },
+        {
+          "target": "ablation_coding",
+          "kind": "weak"
+        },
+        {
+          "target": "ablation_critic",
+          "kind": "weak"
+        },
+        {
+          "target": "result_comparison",
+          "kind": "weak"
+        },
+        {
+          "target": "draft_outline",
+          "kind": "weak"
+        },
+        {
+          "target": "draft_literature",
+          "kind": "weak"
+        },
+        {
+          "target": "draft_figures",
+          "kind": "weak"
+        },
+        {
+          "target": "draft_sections",
+          "kind": "weak"
+        },
+        {
+          "target": "draft_quality",
+          "kind": "weak"
+        },
+        {
+          "target": "content_refine",
+          "kind": "weak"
+        },
+        {
+          "target": "format_review",
+          "kind": "weak"
+        },
+        {
+          "target": "format_fix",
+          "kind": "weak"
+        },
+        {
+          "target": "review_summary",
+          "kind": "weak"
+        },
+        {
+          "target": "review_literature",
+          "kind": "weak"
+        },
+        {
+          "target": "review_expand",
+          "kind": "weak"
+        },
+        {
+          "target": "review_historian",
+          "kind": "weak"
+        },
+        {
+          "target": "review_baselines",
+          "kind": "weak"
+        },
+        {
+          "target": "novelty_questions",
+          "kind": "weak"
+        },
+        {
+          "target": "soundness_questions",
+          "kind": "weak"
+        },
+        {
+          "target": "novelty_answer",
+          "kind": "weak"
+        },
+        {
+          "target": "soundness_answer",
+          "kind": "weak"
+        },
+        {
+          "target": "peer_review",
+          "kind": "weak"
+        },
+        {
+          "target": "rebuttal_plan",
+          "kind": "weak"
+        },
+        {
+          "target": "rebuttal_coding",
+          "kind": "weak"
+        },
+        {
+          "target": "paper_enhancer",
+          "kind": "weak"
+        },
+        {
+          "target": "meta_review",
+          "kind": "weak"
+        },
+        {
+          "target": "reference_verify",
+          "kind": "weak"
+        },
+        {
+          "target": "method_audit",
+          "kind": "weak"
+        },
+        {
+          "target": "integrity_writer",
+          "kind": "weak"
+        },
+        {
+          "target": "score_reproduce",
+          "kind": "weak"
+        },
+        {
+          "target": "final_spec_audit",
+          "kind": "weak"
+        },
+        {
+          "target": "export",
+          "kind": "weak"
+        },
+        {
+          "target": "draft_quality_merge",
+          "kind": "weak"
+        }
+      ],
+      "task_setup": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "limitation_extract": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "limitation_verify": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "seed_generate": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "novelty_check": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "baseline_coding": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "subset_coding": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "subset_critic": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "subset_engineering": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "full_coding": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "full_critic": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "full_engineering": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "spec_filter": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "idea_evolve": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "selector": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "ablation_plan": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "ablation_coding": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "ablation_critic": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "result_comparison": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "draft_outline": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "draft_literature": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "draft_figures": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "draft_sections": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "draft_quality": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "content_refine": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "format_review": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "format_fix": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "review_summary": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "review_literature": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "review_expand": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "review_historian": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "review_baselines": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "novelty_questions": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "soundness_questions": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "novelty_answer": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "soundness_answer": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "peer_review": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "rebuttal_plan": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "rebuttal_coding": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "paper_enhancer": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "meta_review": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "reference_verify": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "method_audit": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "integrity_writer": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "score_reproduce": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "final_spec_audit": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "export": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ],
+      "draft_quality_merge": [
+        {
+          "target": "main",
+          "kind": "strong"
+        }
+      ]
+    },
+    "decisionPlans": {
+      "main": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "task_setup": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "limitation_extract": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "limitation_verify": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "seed_generate": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "novelty_check": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "baseline_coding": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "subset_coding": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "subset_critic": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "subset_engineering": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "full_coding": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "full_critic": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "full_engineering": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "spec_filter": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "idea_evolve": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "selector": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "ablation_plan": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "ablation_coding": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "ablation_critic": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "result_comparison": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "draft_outline": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "draft_literature": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "draft_figures": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "draft_sections": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "draft_quality": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "content_refine": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "format_review": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "format_fix": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "review_summary": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "review_literature": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "review_expand": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "review_historian": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "review_baselines": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "novelty_questions": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "soundness_questions": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "novelty_answer": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "soundness_answer": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "peer_review": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "rebuttal_plan": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "rebuttal_coding": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "paper_enhancer": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "meta_review": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "reference_verify": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "method_audit": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "integrity_writer": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "score_reproduce": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "final_spec_audit": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "export": "Follow the ticket and evidence protocol returned by protocol.py next. Only Main may submit state; never bypass a gate.",
+      "draft_quality_merge": "Aggregate the three independent reviews as text; the controller computes numerical aggregates."
+    },
+    "allowUserIntervention": false,
+    "allowMainReconfiguration": false,
+    "termination": {
+      "agent": "main",
+      "condition": "protocol.py verify passes, next.role is null, and terminal is no_successful_idea or an exported meta_accept/meta_budget_exhausted/retained_previous_best. Report scientific failure and budget termination accurately; blocked is not completion.",
+      "decisionBy": "main",
+      "automatic": false
+    },
+    "resultFormat": {
+      "presets": [
+        "Reproducible evidence"
+      ],
+      "custom": "Complete best-version package, manuscript, code, raw experiments/ablations/supplemental experiments and audit evidence, state journal, all budgets and provenance mappings. Distinguish scientific outcomes from orchestration termination."
+    },
+    "input": {
+      "source": "input",
+      "target": "main"
+    }
+  },
+  "git": {
+    "enabled": false
+  }
+}

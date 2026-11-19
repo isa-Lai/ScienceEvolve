@@ -37,8 +37,12 @@ function actualKernelApi(onRun?: (request: Parameters<AgentRunner["run"]>[0]) =>
       invocationId: request.invocationId, callId: `${request.invocationId}-complete`, stateVersion: request.control!.stateVersion,
       capabilityHash: request.control!.capabilityHash, receivedAt: new Date().toISOString(),
       action: { tool: "complete_project", rationale: "CLI fixture acceptance satisfied" } }] }; } };
-  return { ...mainApi, createMainResearchSdk: async ({ dataDir }) => {
-    const runtime = await createMainApplicationRuntime({ dataDir, skillRoots: [], internal: { runner,
+  return { ...mainApi, createMainResearchSdk: async ({ dataDir, nativeCodexProfiles, nativeAgyProfiles }: {
+    dataDir: string;
+    nativeCodexProfiles?: Record<string, string>;
+    nativeAgyProfiles?: Record<string, string>;
+  }) => {
+    const runtime = await createMainApplicationRuntime({ dataDir, nativeCodexProfiles, nativeAgyProfiles, skillRoots: [], internal: { runner,
       residentLauncher: { open: async () => { throw new Error("Git-off fixture must not open resident"); } } } });
     return createMainSdkClient(runtime);
   } };
@@ -419,5 +423,36 @@ describe("main CLI lifecycle transport contracts (simulated RunHandle; not nativ
     expect(mainHelp).toMatch(/NOT offline read-only/);
     expect(mainHelp).toMatch(/tokenEnv/); expect(mainHelp).toMatch(/--workspace/);
     expect(mainHelp).toMatch(/CREATE\/PUSH/); expect(mainHelp).toMatch(/resumable Stop/);
+    expect(mainHelp).toMatch(/--native-agy-profile/);
+  });
+
+  it("supports --native-agy-profile with --harness agy for run start while keeping gateway harnesses unchanged", async () => {
+    const root = await directory(), dataDir = path.join(root, "data"), workspace = path.join(root, "workspace");
+    const agyProfile = path.join(root, "home", ".gemini", "antigravity-cli");
+    await fs.mkdir(dataDir); await fs.mkdir(workspace); await fs.mkdir(agyProfile, { recursive: true });
+    await fs.writeFile(path.join(agyProfile, "antigravity-oauth-token"), "opaque-agy-token-never-read");
+    const runtimeFile = path.join(root, "runtime.json");
+    await fs.writeFile(runtimeFile, JSON.stringify({ nativeAgyProfiles: { login: agyProfile } }));
+    const workflowFile = path.join(root, "workflow.json"), requirement = path.join(root, "task.txt");
+    await fs.writeFile(workflowFile, JSON.stringify(workflow()));
+    await fs.writeFile(requirement, "Run with native agy profile");
+    let capturedProfile: string | undefined;
+    let capturedHarness: string | undefined;
+    const api = actualKernelApi(async (request) => {
+      capturedHarness = request.project.agents[request.agent]?.harness;
+      capturedProfile = request.project.agents[request.agent]?.nativeAgyProfileId;
+    });
+    const services = { api: { ...mainApi, ...api }, ...output() };
+    await expect(runMainCli(["gateway", "import"], options(root, { harness: "agy", model: "gemini-2.5-pro", source: "env" }), services))
+      .rejects.toThrow("--harness must be one of: codex, pi, dsh");
+    await expect(runMainCli(["start", workflowFile, requirement], options(dataDir, {
+      "native-agy-profile": "login", gateway: "gwy_conflict"
+    }), services)).rejects.toThrow(/exactly one/i);
+    const started = output();
+    expect(await runMainCli(["start", workflowFile, requirement], options(dataDir, {
+      "runtime-config": runtimeFile, "native-agy-profile": "login", harness: "agy", model: "gemini-2.5-pro", workspace
+    }), { api, ...started })).toBe(0);
+    expect(capturedHarness).toBe("agy");
+    expect(capturedProfile).toBe("login");
   });
 });

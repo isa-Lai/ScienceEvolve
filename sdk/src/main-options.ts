@@ -30,6 +30,7 @@ const optionsSchema = z.object({
   dataDir: absolutePath,
   harnesses: z.record(harnessPath).optional(),
   nativeCodexProfiles: z.record(z.string().regex(/^[A-Za-z0-9_-]{1,80}$/), absolutePath).optional(),
+  nativeAgyProfiles: z.record(z.string().regex(/^[A-Za-z0-9_-]{1,80}$/), absolutePath).optional(),
   skillRoots: z.array(absolutePath).optional(), userSkillRoot: absolutePath.optional(),
   execution: executionSchema.optional(), timeouts: timeoutsSchema.optional(),
   sii: siiSchema.optional(),
@@ -47,11 +48,16 @@ export function validateMainResearchSdkOptions(input: unknown): MainResearchSdkO
   return optionsSchema.parse(input);
 }
 
-const nativeBinding = z.object({ nativeCodexProfileId: z.string().regex(/^[A-Za-z0-9_-]{1,80}$/) }).strict();
+const profileId = z.string().regex(/^[A-Za-z0-9_-]{1,80}$/);
+const nativeBinding = z.union([
+  z.object({ nativeCodexProfileId: profileId }).strict(),
+  z.object({ nativeAgyProfileId: profileId }).strict()
+]);
 const bindingsSchema = z.object({ defaultGatewayId: z.string().trim().min(1).optional(),
-  defaultNativeCodexProfileId: z.string().regex(/^[A-Za-z0-9_-]{1,80}$/).optional(),
+  defaultNativeCodexProfileId: profileId.optional(),
+  defaultNativeAgyProfileId: profileId.optional(),
   agents: z.record(z.union([z.string().trim().min(1), nativeBinding])).optional() }).strict()
-  .refine((input) => !(input.defaultGatewayId && input.defaultNativeCodexProfileId), "Choose one default model route, not both");
+  .refine((input) => [input.defaultGatewayId, input.defaultNativeCodexProfileId, input.defaultNativeAgyProfileId].filter(Boolean).length <= 1, "Choose one default model route, not both");
 export type MainGatewayBindings = z.infer<typeof bindingsSchema>;
 export function validateMainGatewayBindings(input: unknown): MainGatewayBindings {
   return bindingsSchema.parse(input);
@@ -75,6 +81,8 @@ export async function loadMainRuntimeConfig(file: string): Promise<Omit<MainRese
       ? { harnesses: Object.fromEntries(Object.entries(source.harnesses).map(([id, value]) => [id, resolvePath(value)])) } : {}),
     ...(source.nativeCodexProfiles && typeof source.nativeCodexProfiles === "object" && !Array.isArray(source.nativeCodexProfiles)
       ? { nativeCodexProfiles: Object.fromEntries(Object.entries(source.nativeCodexProfiles).map(([id, value]) => [id, resolvePath(value)])) } : {}),
+    ...(source.nativeAgyProfiles && typeof source.nativeAgyProfiles === "object" && !Array.isArray(source.nativeAgyProfiles)
+      ? { nativeAgyProfiles: Object.fromEntries(Object.entries(source.nativeAgyProfiles).map(([id, value]) => [id, resolvePath(value)])) } : {}),
     ...(Array.isArray(source.skillRoots) ? { skillRoots: source.skillRoots.map(resolvePath) } : {}),
     ...(source.sii && typeof source.sii === "object" && !Array.isArray(source.sii)
       ? { sii: Object.fromEntries(Object.entries(source.sii).map(([key, value]) =>

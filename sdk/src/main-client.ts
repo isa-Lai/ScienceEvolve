@@ -112,6 +112,7 @@ export async function createMainResearchSdk(options: MainResearchSdkOptions): Pr
     const resolver = options.git?.credentialResolver ?? gitCredentialHelperResolver();
     const runtime = await createMainApplicationRuntime({ dataDir: options.dataDir,
       nativeCodexProfiles: options.nativeCodexProfiles,
+      nativeAgyProfiles: options.nativeAgyProfiles,
       sii: options.sii,
       skillRoots: [fileURLToPath(new URL("../assets/skills/", import.meta.url)), ...(options.skillRoots ?? [])],
       userSkillRoot: options.userSkillRoot,
@@ -273,12 +274,19 @@ export async function createMainSdkClient(runtime: MainApplicationRuntime, redac
       }
       const agents = Object.fromEntries(Object.entries(workflow.agents).map(([name, config]) => {
         const assigned = bindings.agents && Object.hasOwn(bindings.agents, name) ? bindings.agents[name] : undefined;
-        const nativeCodexProfileId = typeof assigned === "object" ? assigned.nativeCodexProfileId
-          : assigned === undefined ? bindings.defaultNativeCodexProfileId : undefined;
+        const nativeCodexProfileId = assigned === undefined ? bindings.defaultNativeCodexProfileId
+          : typeof assigned === "object" && "nativeCodexProfileId" in assigned ? assigned.nativeCodexProfileId : undefined;
         if (nativeCodexProfileId) {
           if (config.harness !== "codex" || config.gatewayReasoningOption) throw new Error(`Native Codex binding conflicts with Agent: ${name}`);
           return [name, { ...config, nativeCodexProfileId }];
         }
+        const nativeAgyProfileId = assigned === undefined ? bindings.defaultNativeAgyProfileId
+          : typeof assigned === "object" && "nativeAgyProfileId" in assigned ? assigned.nativeAgyProfileId : undefined;
+        if (nativeAgyProfileId) {
+          if (config.harness !== "agy" || config.gatewayReasoningOption) throw new Error(`Native agy binding conflicts with Agent: ${name}`);
+          return [name, { ...config, nativeAgyProfileId }];
+        }
+        if (config.harness === "agy") throw new Error(`Native agy profile binding required for Agent: ${name}`);
         const gatewayId = typeof assigned === "string" ? assigned : bindings.defaultGatewayId;
         if (!gatewayId) throw new Error(`Gateway binding required for Agent: ${name}`);
         return [name, { ...config, gatewayId }];

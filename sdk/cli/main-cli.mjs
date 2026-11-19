@@ -16,7 +16,7 @@ Usage: scievolve <command> [--engine main] --data-dir <absolute-dedicated-direct
   gateway test ID --model M --harness codex|pi|dsh|all [--reasoning-option ID]
   start WORKFLOW_JSON REQUIREMENT_TXT     Alias of run start
   run start WORKFLOW_JSON REQUIREMENT_TXT [--title T] [--preset-id ID]
-            (--gateway ID | --gateway-bindings FILE | --native-codex-profile ID) [--model M --harness H]
+            (--gateway ID | --gateway-bindings FILE | --native-codex-profile ID | --native-agy-profile ID) [--model M --harness H]
             [--workspace <existing-directory>] (relative to launch cwd)
             [--inputs FILE_OR_DIRECTORY | --inputs-file JSON_ARRAY_FILE] [--input-description TEXT]
             [--source-workspace <absolute-source-directory> [--source-files <json-array-file>]]
@@ -60,9 +60,9 @@ run export writes only a completed Git run's integrated main tree, never dirty A
 worktrees or .git; the destination must be new and outside runtime data.
 All Agents must bind an explicit route; --gateway-bindings is credential-free JSON:
 { "defaultGatewayId": "gateway-id", "agents": { "review": "other-gateway-id" } }
-Native selection: { "defaultNativeCodexProfileId": "login" } or
-{ "agents": { "main": { "nativeCodexProfileId": "login" } } }.
-Runtime JSON nativeCodexProfiles maps aliases to absolute/relative login directories.
+Native selection: { "defaultNativeCodexProfileId": "login" }, { "defaultNativeAgyProfileId": "login" }, or
+{ "agents": { "main": { "nativeCodexProfileId": "login" } } } / { "nativeAgyProfileId": "login" }.
+Runtime JSON nativeCodexProfiles / nativeAgyProfiles map aliases to login directories.
 These aliases/paths are pinned on first open, and cannot change underneath saved runs.
 The native route selects the official OpenAI provider, not a configured middleman.
 Runtime JSON accepts harnesses (native/JS paths), skillRoots, userSkillRoot,
@@ -95,6 +95,7 @@ export async function runMainCli(positionals, options, services = {}) {
   const line = (value) => stdout.write(`${JSON.stringify(value)}\n`);
   const guidance = (value) => stderr.write(`${value}\n`);
   const harnesses = ["codex", "pi", "dsh"];
+  const runHarnesses = ["codex", "pi", "dsh", "agy"];
   function only(names, count, args) {
     const allowed = new Set(["engine", "data-dir", "runtime-config", ...names]);
     for (const name of options.keys()) if (!allowed.has(name)) throw new Error(`Unknown main-engine option --${name}`);
@@ -105,8 +106,8 @@ export async function runMainCli(positionals, options, services = {}) {
     if (typeof value !== "string" || !value.trim()) throw new Error(`Missing --${name}`);
     return value;
   }
-  function harness(name) {
-    if (!harnesses.includes(name)) throw new Error(`--harness must be one of: ${harnesses.join(", ")}`);
+  function harness(name, allowed = harnesses) {
+    if (!allowed.includes(name)) throw new Error(`--harness must be one of: ${allowed.join(", ")}`);
     return name;
   }
   function shellArgument(value) {
@@ -264,7 +265,7 @@ export async function runMainCli(positionals, options, services = {}) {
     } else throw new Error(`Unknown main gateway command: ${action ?? ""}`);
   } else if (command === "run") {
     if (action === "start") {
-      only(["title", "preset-id", "model", "harness", "gateway", "gateway-bindings", "native-codex-profile", "workspace", "source-workspace", "source-files", "inputs", "inputs-file", "input-description"], 2, args);
+      only(["title", "preset-id", "model", "harness", "gateway", "gateway-bindings", "native-codex-profile", "native-agy-profile", "workspace", "source-workspace", "source-files", "inputs", "inputs-file", "input-description"], 2, args);
       if (options.has("inputs") && options.has("inputs-file")) throw new Error("--inputs and --inputs-file are mutually exclusive");
       let inputs;
       if (options.has("inputs")) {
@@ -299,11 +300,12 @@ export async function runMainCli(positionals, options, services = {}) {
       if (options.has("source-files") && !options.has("source-workspace")) throw new Error("--source-files requires --source-workspace");
       if (options.has("source-workspace") && !path.isAbsolute(required("source-workspace"))) throw new Error("--source-workspace must be absolute");
       if (options.has("model") !== options.has("harness")) throw new Error("--model and --harness must be supplied together");
-      if (["gateway", "gateway-bindings", "native-codex-profile"].filter((key) => options.has(key)).length !== 1) throw new Error("Supply exactly one of --gateway, --gateway-bindings or --native-codex-profile");
+      if (["gateway", "gateway-bindings", "native-codex-profile", "native-agy-profile"].filter((key) => options.has(key)).length !== 1) throw new Error("Supply exactly one of --gateway, --gateway-bindings, --native-codex-profile or --native-agy-profile");
       let workflow = await api.loadMainWorkflowConfig(args[0], { presetId: options.get("preset-id") });
-      if (options.has("model")) workflow = api.bindMainWorkflowConfig(workflow, { model: required("model"), harness: harness(required("harness")) });
+      if (options.has("model")) workflow = api.bindMainWorkflowConfig(workflow, { model: required("model"), harness: harness(required("harness"), runHarnesses) });
       const gatewayBindings = api.validateMainGatewayBindings(options.has("gateway") ? { defaultGatewayId: required("gateway") }
         : options.has("native-codex-profile") ? { defaultNativeCodexProfileId: required("native-codex-profile") }
+        : options.has("native-agy-profile") ? { defaultNativeAgyProfileId: required("native-agy-profile") }
         : JSON.parse(await readFile(path.resolve(required("gateway-bindings")), "utf8")));
       const requirement = await readFile(path.resolve(args[1]), "utf8");
       if (!requirement.trim()) throw new Error("Requirement file is empty");

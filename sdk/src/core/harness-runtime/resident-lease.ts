@@ -963,7 +963,9 @@ function validateTurn(turn: ResidentTurn): void {
     ["prompt", turn.prompt],
     ...("nativeCodexProfileHome" in turn.route
       ? [["native profile home", turn.route.nativeCodexProfileHome], ["native authority", turn.route.authorityId]] as const
-      : [["route base URL", turn.route.baseUrl], ["route token", turn.route.token]] as const)
+      : "nativeAgyProfileHome" in turn.route
+        ? [["native profile home", turn.route.nativeAgyProfileHome], ["native authority", turn.route.authorityId]] as const
+        : [["route base URL", turn.route.baseUrl], ["route token", turn.route.token]] as const)
   ] as const) {
     if (!value || value.length > 1_000_000 || value.includes("\0")) {
       throw contractError(`Resident turn has an invalid ${label}`);

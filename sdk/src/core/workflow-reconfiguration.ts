@@ -72,6 +72,7 @@ export function reconcileAgentConfigsForWorkflow(
       return [[definition.name, {
         model: seed.model,
         ...(seed.nativeCodexProfileId ? { nativeCodexProfileId: seed.nativeCodexProfileId } : {}),
+        ...(seed.nativeAgyProfileId ? { nativeAgyProfileId: seed.nativeAgyProfileId } : {}),
         ...(seed.harness ? { harness: seed.harness } : {}),
         ...(seed.gatewayId ?? seed.gatewaySnapshot?.id
           ? { gatewayId: seed.gatewayId ?? seed.gatewaySnapshot?.id }

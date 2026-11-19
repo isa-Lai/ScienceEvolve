@@ -91,4 +91,15 @@ describe("main deployment options (no model/provider requests)", () => {
       workspaceRoot: path.join(root, "workspace"), configPath: path.join(root, "config.yaml"),
       knowledgeRoot: path.join(root, "knowledge"), noProxy: ["localhost"], refreshMs: 2000 });
   });
+  it("resolves nativeAgyProfiles paths and validates mutually exclusive agy bindings", async () => {
+    const root = await directory();
+    const file = path.join(root, "deployment.json");
+    await fs.writeFile(file, JSON.stringify({ nativeAgyProfiles: { login: "./agy-login" } }));
+    const loaded = await loadMainRuntimeConfig(file);
+    expect(loaded.nativeAgyProfiles).toEqual({ login: path.join(root, "agy-login") });
+    expect(validateMainGatewayBindings({ defaultNativeAgyProfileId: "login", agents: { review: { nativeAgyProfileId: "login" } } }))
+      .toEqual({ defaultNativeAgyProfileId: "login", agents: { review: { nativeAgyProfileId: "login" } } });
+    expect(() => validateMainGatewayBindings({ defaultNativeAgyProfileId: "login", defaultNativeCodexProfileId: "codex" })).toThrow(/one default/);
+    expect(() => validateMainGatewayBindings({ agents: { main: { nativeAgyProfileId: "a", nativeCodexProfileId: "b" } } })).toThrow();
+  });
 });

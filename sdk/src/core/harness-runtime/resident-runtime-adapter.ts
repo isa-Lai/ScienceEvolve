@@ -449,7 +449,7 @@ export class HarnessRuntimeResidentAdapter {
       const prepared = await this.#options.runtime.prepareResidentScope({
         request: launchRequest,
         ...(context.role === "leader" ? { inputs: input.inputs! } : {}),
-        launchRoute: request.project.agents[request.agent].nativeCodexProfileId
+        launchRoute: (request.project.agents[request.agent].nativeCodexProfileId || request.project.agents[request.agent].nativeAgyProfileId)
           ? modelRouteBinding(await this.#options.runtime.openResidentTurnGatewayRoute(launchRequest, input.onTrace, input.signal))
           : gatewayFrontdoor.route,
         filesystemAuthorityInput: input.filesystemAuthorityInput,
@@ -962,7 +962,7 @@ class StableTurnAuthorityBroker implements ResidentTurnAuthorityBroker {
 
       // No await is permitted between these assignments. They form one event-
       // loop atomic publication of Gateway plus control downstream authority.
-      this.#options.gatewayFrontdoor.rotate("nativeCodexProfileHome" in prepared.route ? undefined : prepared.route);
+      this.#options.gatewayFrontdoor.rotate("nativeCodexProfileHome" in prepared.route || "nativeAgyProfileHome" in prepared.route ? undefined : prepared.route);
       this.#options.controlFrontdoor?.rotate(prepared.control?.downstream);
       this.#current = prepared;
       this.#options.siiBinding?.activate(prepared.request);
@@ -1232,7 +1232,7 @@ class StableTurnAuthorityBroker implements ResidentTurnAuthorityBroker {
     prepared.control?.service.seal();
     if (outcome === "failed") this.#revoke(prepared);
     const drains = await Promise.allSettled([
-        "nativeCodexProfileHome" in prepared.route ? Promise.resolve() : this.#options.gatewayFrontdoor.drain(prepared.route),
+        "nativeCodexProfileHome" in prepared.route || "nativeAgyProfileHome" in prepared.route ? Promise.resolve() : this.#options.gatewayFrontdoor.drain(prepared.route),
         prepared.control && this.#options.controlFrontdoor
           ? this.#options.controlFrontdoor.drain(prepared.control.downstream)
           : Promise.resolve(),
@@ -2349,6 +2349,13 @@ function assertInvocationRoute(route: InvocationModelRoute): void {
     }
     return;
   }
+  if (route && "nativeAgyProfileHome" in route) {
+    if (!path.isAbsolute(route.nativeAgyProfileHome) || !path.isAbsolute(route.launchHome) ||
+      !route.authorityId || route.authorityId.includes("\0") || typeof route.close !== "function") {
+      throw adapterError("Resident route factory returned invalid native Agy profile authority");
+    }
+    return;
+  }
   if (!route || typeof route.baseUrl !== "string" || typeof route.token !== "string" ||
     !route.token.trim() || route.token.includes("\0") || typeof route.close !== "function") {
     throw adapterError("Resident route factory returned an invalid invocation route");
@@ -2440,6 +2447,12 @@ function sameTurnAuthority(expected: ResidentTurn, supplied: ResidentTurn): bool
 function sameModelRouteAuthority(expected: ResidentTurn["route"], supplied: ResidentTurn["route"]): boolean {
   if ("nativeCodexProfileHome" in expected) return "nativeCodexProfileHome" in supplied &&
     expected.nativeCodexProfileHome === supplied.nativeCodexProfileHome && safeSecretEqual(expected.authorityId, supplied.authorityId);
+  if ("nativeAgyProfileHome" in expected) return "nativeAgyProfileHome" in supplied &&
+    expected.nativeAgyProfileHome === supplied.nativeAgyProfileHome &&
+    expected.launchHome === supplied.launchHome &&
+    expected.geminiDir === supplied.geminiDir &&
+    expected.appDataDir === supplied.appDataDir &&
+    safeSecretEqual(expected.authorityId, supplied.authorityId);
   return "baseUrl" in supplied && expected.baseUrl === supplied.baseUrl && safeSecretEqual(expected.token, supplied.token);
 }
 

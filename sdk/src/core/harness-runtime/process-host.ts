@@ -1068,6 +1068,12 @@ function assertAuthorizedLaunchPlan(
     }
     const homeInsideProject = pathIsWithin(authoritativeHome, projectRoot) ||
       pathIsWithin(authoritativeHome, binding.runtimePath);
+    const trustedNativeHome = harnessSupportsNativeProfile(binding.harnessId) && binding.harnessId === "codex" &&
+      binding.route && "nativeCodexProfileHome" in binding.route
+      ? binding.route.nativeCodexProfileHome : undefined;
+    const trustedNativeAgyLaunchHome = harnessSupportsNativeProfile(binding.harnessId) && binding.harnessId === "agy" &&
+      binding.route && "nativeAgyProfileHome" in binding.route
+      ? binding.route.launchHome : undefined;
     const residentExecution = binding.authorityEnvironment?.SCIENCEEVOLVE_EXECUTION_ID;
     const residentLeader = mode === "resident" &&
       expectedEnvironment.SCIENCEEVOLVE_RESIDENT_ROLE === "leader";
@@ -1075,11 +1081,11 @@ function assertAuthorizedLaunchPlan(
       residentLeader) &&
       Boolean(binding.hostHome) &&
       path.resolve(authoritativeHome) === path.resolve(binding.hostHome!);
-    if (!homeInsideProject && !authorizedHostHome) {
+    const authorizedNativeAgyHome = Boolean(trustedNativeAgyLaunchHome) &&
+      path.resolve(authoritativeHome) === path.resolve(trustedNativeAgyLaunchHome!);
+    if (!homeInsideProject && !authorizedHostHome && !authorizedNativeAgyHome) {
       reject("Harness launch HOME is outside the permitted invocation boundary");
     }
-    const trustedNativeHome = harnessSupportsNativeProfile(binding.harnessId) && binding.route && "nativeCodexProfileHome" in binding.route
-      ? binding.route.nativeCodexProfileHome : undefined;
     if (trustedNativeHome && codexHome !== trustedNativeHome) reject("Harness launch did not install its trusted native Codex profile");
     if (codexHome !== undefined && codexHome !== trustedNativeHome &&
       (!path.isAbsolute(codexHome) || !pathIsWithin(codexHome, projectRoot))) {
@@ -1105,10 +1111,23 @@ function assertAuthorizedLaunchPlan(
     validateControlContext(plan, binding as InvocationProcessBinding, reject);
   }
   if (binding.route && "nativeCodexProfileHome" in binding.route) {
-    if (!harnessSupportsNativeProfile(binding.harnessId) || plan.env.CODEX_HOME !== binding.route.nativeCodexProfileHome ||
+    if (!harnessSupportsNativeProfile(binding.harnessId) || binding.harnessId !== "codex" ||
+      plan.env.CODEX_HOME !== binding.route.nativeCodexProfileHome ||
       !path.isAbsolute(binding.route.nativeCodexProfileHome)) reject("Invalid native Codex profile authority");
     for (const key of ["SCIENCEEVOLVE_GATEWAY_API_KEY", "OPENAI_API_KEY", "OPENAI_BASE_URL", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL"]) {
       if (plan.env[key] !== undefined) reject(`Native Codex profile launch injected provider environment key ${key}`);
+    }
+  } else if (binding.route && "nativeAgyProfileHome" in binding.route) {
+    if (!harnessSupportsNativeProfile(binding.harnessId) || binding.harnessId !== "agy" ||
+      !path.isAbsolute(binding.route.nativeAgyProfileHome) ||
+      !path.isAbsolute(binding.route.launchHome) ||
+      path.isAbsolute(binding.route.geminiDir) ||
+      path.isAbsolute(binding.route.appDataDir) ||
+      path.resolve(binding.route.launchHome, binding.route.geminiDir, binding.route.appDataDir) !== path.resolve(binding.route.nativeAgyProfileHome) ||
+      plan.env.HOME !== binding.route.launchHome ||
+      plan.env.CODEX_HOME !== undefined) reject("Invalid native Agy profile authority");
+    for (const key of ["SCIENCEEVOLVE_GATEWAY_API_KEY", "OPENAI_API_KEY", "OPENAI_BASE_URL", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "GEMINI_API_KEY", "GOOGLE_API_KEY"]) {
+      if (plan.env[key] !== undefined) reject(`Native Agy profile launch injected provider environment key ${key}`);
     }
   } else if (binding.route) {
     if (plan.env.SCIENCEEVOLVE_GATEWAY_API_KEY !== binding.route.token) {

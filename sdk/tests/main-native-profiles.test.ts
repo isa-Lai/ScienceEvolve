@@ -2,11 +2,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { MainNativeCodexProfiles } from "../src/main-native-profiles.js";
+import { MainNativeAgyProfiles, MainNativeCodexProfiles } from "../src/main-native-profiles.js";
 import { validateMainGatewayBindings, validateMainResearchSdkOptions } from "../src/main-options.js";
 import { validateMainWorkflowConfig } from "../src/main-config.js";
 import { openInvocationModelRoute } from "../src/core/harness-runtime/gateway-route.js";
 import { harnessCatalogRegistry } from "../src/core/harness-runtime/registry.js";
+import { AGY_DESCRIPTOR } from "../src/host/agy/descriptor.js";
 import type { AgentRunRequest } from "../src/core/types.js";
 
 const roots: string[] = [];
@@ -57,5 +58,47 @@ describe("trusted native Codex profile authority (no model/network)", () => {
     await expect(openInvocationModelRoute(harnessCatalogRegistry.descriptor("pi"), request, () => {}, signal, options as never, async () => profile)).rejects.toThrow(/Invalid native/);
     request.project.agents.main.gatewayId = "gwy_fixture";
     await expect(openInvocationModelRoute(descriptor, request, () => {}, signal, options as never, async () => profile)).rejects.toThrow(/Invalid native/);
+  });
+
+  it("pins native agy profile directories and opens isolated agy routes", async () => {
+    const { root, data } = await directories();
+    const agyProfile = path.join(root, "home", ".gemini", "antigravity-cli");
+    await fs.mkdir(agyProfile, { recursive: true });
+    await fs.writeFile(path.join(agyProfile, "antigravity-oauth-token"), "opaque-agy-token-never-read");
+    await fs.writeFile(path.join(agyProfile, "settings.json"), '{"selectedAuthType":"oauth-personal"}');
+
+    const store = new MainNativeAgyProfiles();
+    await store.initialize(data, { login: agyProfile }, true);
+    const resolved = await store.resolve("login");
+    expect(resolved).toEqual({
+      profileHome: await fs.realpath(agyProfile),
+      launchHome: await fs.realpath(path.join(root, "home")),
+      geminiDir: ".gemini",
+      appDataDir: "antigravity-cli"
+    });
+    expect(await fs.readdir(data)).toContain(".scienceevolve-native-agy-profiles.json");
+    await expect(new MainNativeAgyProfiles().initialize(data, {}, false)).rejects.toThrow(/bindings changed/);
+    const reopened = new MainNativeAgyProfiles();
+    await reopened.initialize(data, { login: agyProfile }, false);
+    await expect(reopened.resolve("other")).rejects.toThrow(/Unknown native agy/);
+
+    const request = {
+      purpose: "workflow",
+      agent: "main",
+      project: { agents: { main: { harness: "agy", nativeAgyProfileId: "login", model: "gemini-2.5-pro" } } }
+    } as unknown as AgentRunRequest;
+    const signal = new AbortController().signal;
+    const options = { protocolProxyFactory: async () => { throw new Error("Native agy route must not open a proxy"); } };
+    const route = await openInvocationModelRoute(AGY_DESCRIPTOR, request, () => {}, signal, options as never, undefined, (id) => reopened.resolve(id));
+    expect(route).toMatchObject({
+      nativeAgyProfileHome: resolved.profileHome,
+      launchHome: resolved.launchHome,
+      geminiDir: ".gemini",
+      appDataDir: "antigravity-cli"
+    });
+    await route.close();
+
+    await expect(openInvocationModelRoute(harnessCatalogRegistry.descriptor("codex"), request, () => {}, signal, options as never, undefined, (id) => reopened.resolve(id)))
+      .rejects.toThrow(/Invalid native/);
   });
 });

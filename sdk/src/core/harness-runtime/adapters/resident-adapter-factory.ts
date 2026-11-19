@@ -69,7 +69,7 @@ export async function openBuiltinResidentAdapter(
     }
   );
   try {
-    if (input.adapter.descriptor.id === "codex" && !("nativeCodexProfileHome" in input.launchRoute)) {
+    if (input.adapter.descriptor.id === "codex" && !("nativeCodexProfileHome" in input.launchRoute) && !("nativeAgyProfileHome" in input.launchRoute)) {
       await installWindowsCodexPatch(residentHarnessHome(input, "codex-home"),
         input.executable, input.executionRuntimePath);
     }
@@ -110,8 +110,13 @@ export async function openBuiltinResidentAdapter(
 
 async function buildLaunch(input: ResidentAdapterLaunchRequest): Promise<ResidentAdapterLaunchDefinition> {
   const harnessId = input.adapter.descriptor.id;
+  if ("nativeCodexProfileHome" in input.launchRoute && harnessId !== "codex") {
+    throw launchError("Native Codex profile cannot launch another Harness");
+  }
+  if ("nativeAgyProfileHome" in input.launchRoute && harnessId !== "agy") {
+    throw launchError("Native Agy profile cannot launch another Harness");
+  }
   if (harnessId === "codex") return buildCodexLaunch(input);
-  if ("nativeCodexProfileHome" in input.launchRoute) throw launchError("Native Codex profile cannot launch another Harness");
   if (harnessId === "pi") return buildPiLaunch(input);
   if (harnessId === "dsh") return buildDshLaunch(input);
   if (input.adapter.resident?.buildLaunch) return input.adapter.resident.buildLaunch(input);
@@ -324,7 +329,9 @@ function usesFixedAgentWorkspace(input: ResidentAdapterLaunchRequest): boolean {
 }
 
 function gatewayLaunchRoute(input: ResidentAdapterLaunchRequest): { baseUrl: string; token: string } {
-  if ("nativeCodexProfileHome" in input.launchRoute) throw launchError("Gateway route required for this resident feature");
+  if ("nativeCodexProfileHome" in input.launchRoute || "nativeAgyProfileHome" in input.launchRoute) {
+    throw launchError("Gateway route required for this resident feature");
+  }
   return input.launchRoute;
 }
 
@@ -332,7 +339,8 @@ export function residentEnvironment(
   input: ResidentAdapterLaunchRequest,
   adapter: NodeJS.ProcessEnv
 ): NodeJS.ProcessEnv {
-  const gateway = "nativeCodexProfileHome" in input.launchRoute ? undefined : input.launchRoute;
+  const gateway = "nativeCodexProfileHome" in input.launchRoute || "nativeAgyProfileHome" in input.launchRoute
+    ? undefined : input.launchRoute;
   const route = !gateway ? {} : input.adapter.descriptor.nativeProtocol === "anthropic-messages"
     ? {
         SCIENCEEVOLVE_GATEWAY_API_KEY: gateway.token,
@@ -479,7 +487,8 @@ export async function residentMcpRows(input: ResidentAdapterLaunchRequest): Prom
   return [
     await sleepMcpRow(),
     ...input.mcpRows,
-    ...(input.spec.policy.webSearch && input.adapter.descriptor.route?.webSearchMcp && !("nativeCodexProfileHome" in input.launchRoute)
+    ...(input.spec.policy.webSearch && input.adapter.descriptor.route?.webSearchMcp &&
+      !("nativeCodexProfileHome" in input.launchRoute) && !("nativeAgyProfileHome" in input.launchRoute)
       ? [{
           name: "openfars-web",
           namespace: "openfars-web",

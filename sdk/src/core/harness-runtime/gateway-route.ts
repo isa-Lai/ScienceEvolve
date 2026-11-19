@@ -39,8 +39,16 @@ export interface NativeCodexProfileBinding {
   nativeCodexProfileHome: string;
   authorityId: string;
 }
-export type ModelRouteBinding = { baseUrl: string; token: string } | NativeCodexProfileBinding;
-export type AdapterModelRoute = (Pick<InvocationGatewayRoute, "baseUrl" | "token" | "sourceProtocol" | "targetProtocol">) | NativeCodexProfileBinding;
+/** Host-owned Antigravity CLI (agy) profile authority, not a provider endpoint or bearer token. */
+export interface NativeAgyProfileBinding {
+  nativeAgyProfileHome: string;
+  launchHome: string;
+  geminiDir: string;
+  appDataDir: string;
+  authorityId: string;
+}
+export type ModelRouteBinding = { baseUrl: string; token: string } | NativeCodexProfileBinding | NativeAgyProfileBinding;
+export type AdapterModelRoute = (Pick<InvocationGatewayRoute, "baseUrl" | "token" | "sourceProtocol" | "targetProtocol">) | NativeCodexProfileBinding | NativeAgyProfileBinding;
 export interface InvocationNativeCodexRoute extends NativeCodexProfileBinding {
   /** Native profiles have neither a proxy secret nor a proxy injection hook. */
   token?: never;
@@ -49,17 +57,67 @@ export interface InvocationNativeCodexRoute extends NativeCodexProfileBinding {
   resetFailure(): void;
   close(): Promise<void>;
 }
-export type InvocationModelRoute = InvocationGatewayRoute | InvocationNativeCodexRoute;
+export interface InvocationNativeAgyRoute extends NativeAgyProfileBinding {
+  /** Native profiles have neither a proxy secret nor a proxy injection hook. */
+  token?: never;
+  setInjectionBudget?: never;
+  getFailure(): undefined;
+  resetFailure(): void;
+  close(): Promise<void>;
+}
+export type InvocationModelRoute = InvocationGatewayRoute | InvocationNativeCodexRoute | InvocationNativeAgyRoute;
 export type NativeCodexProfileResolver = (profileId: string) => Promise<string>;
+export interface ResolvedNativeAgyProfileLayout {
+  profileHome: string;
+  launchHome: string;
+  geminiDir: string;
+  appDataDir: string;
+}
+export type NativeAgyProfileResolver = (profileId: string) => Promise<ResolvedNativeAgyProfileLayout>;
+
+export function isNativeProfileRoute(route: ModelRouteBinding | AdapterModelRoute | InvocationModelRoute): route is NativeCodexProfileBinding | NativeAgyProfileBinding {
+  return "nativeCodexProfileHome" in route || "nativeAgyProfileHome" in route;
+}
 
 export async function openInvocationModelRoute(
   descriptor: HarnessDescriptor, request: AgentRunRequest, onTrace: TraceSink, signal: AbortSignal,
-  options: GatewayRouteOptions, resolveNativeCodexProfile?: NativeCodexProfileResolver
+  options: GatewayRouteOptions, resolveNativeCodexProfile?: NativeCodexProfileResolver,
+  resolveNativeAgyProfile?: NativeAgyProfileResolver
 ): Promise<InvocationModelRoute> {
   const config = request.project.agents[request.agent];
+  if (config.nativeCodexProfileId && config.nativeAgyProfileId) {
+    throw new HarnessRuntimeError("HARNESS_CONFIGURATION_INVALID", "Agent cannot use both native Codex and native Agy profiles", { harnessId: descriptor.id });
+  }
+  if (config.nativeAgyProfileId) {
+    signal.throwIfAborted();
+    if (descriptor.route?.nativeProfileAuth !== true || descriptor.id !== "agy" || request.purpose === "probe" || request.purpose === "explainer" ||
+      config.gatewayId || config.gatewaySnapshot || !resolveNativeAgyProfile) {
+      throw new HarnessRuntimeError("HARNESS_CONFIGURATION_INVALID", "Invalid native Agy profile route", { harnessId: descriptor.id });
+    }
+    const layout = await resolveNativeAgyProfile(config.nativeAgyProfileId);
+    if (!path.isAbsolute(layout.profileHome) || !path.isAbsolute(layout.launchHome) ||
+      path.isAbsolute(layout.geminiDir) || path.isAbsolute(layout.appDataDir) ||
+      path.resolve(layout.launchHome, layout.geminiDir, layout.appDataDir) !== path.resolve(layout.profileHome)) {
+      throw new Error("Native Agy profile layout is invalid");
+    }
+    signal.throwIfAborted();
+    await onTrace("status", "Native Agy profile route ready (Antigravity CLI-owned authentication)", {
+      diagnostic: true, diagnosticSource: "runtime", harness: descriptor.id, routeMode: "native-profile"
+    });
+    return {
+      nativeAgyProfileHome: layout.profileHome,
+      launchHome: layout.launchHome,
+      geminiDir: layout.geminiDir,
+      appDataDir: layout.appDataDir,
+      authorityId: randomUUID(),
+      getFailure: () => undefined,
+      resetFailure() {},
+      async close() {}
+    };
+  }
   if (!config.nativeCodexProfileId) return openInvocationGatewayRoute(descriptor, request, onTrace, signal, options);
   signal.throwIfAborted();
-  if (descriptor.route?.nativeProfileAuth !== true || request.purpose === "probe" || request.purpose === "explainer" ||
+  if (descriptor.route?.nativeProfileAuth !== true || descriptor.id !== "codex" || request.purpose === "probe" || request.purpose === "explainer" ||
     config.gatewayId || config.gatewaySnapshot || !resolveNativeCodexProfile) {
     throw new HarnessRuntimeError("HARNESS_CONFIGURATION_INVALID", "Invalid native Codex profile route", { harnessId: descriptor.id });
   }
@@ -74,9 +132,19 @@ export async function openInvocationModelRoute(
 }
 
 export function modelRouteBinding(route: InvocationModelRoute): ModelRouteBinding {
-  return "nativeCodexProfileHome" in route
-    ? { nativeCodexProfileHome: route.nativeCodexProfileHome, authorityId: route.authorityId }
-    : { baseUrl: route.baseUrl, token: route.token };
+  if ("nativeCodexProfileHome" in route) {
+    return { nativeCodexProfileHome: route.nativeCodexProfileHome, authorityId: route.authorityId };
+  }
+  if ("nativeAgyProfileHome" in route) {
+    return {
+      nativeAgyProfileHome: route.nativeAgyProfileHome,
+      launchHome: route.launchHome,
+      geminiDir: route.geminiDir,
+      appDataDir: route.appDataDir,
+      authorityId: route.authorityId
+    };
+  }
+  return { baseUrl: route.baseUrl, token: route.token };
 }
 
 /** Every Harness, including same-protocol invocations, crosses this usage boundary. */

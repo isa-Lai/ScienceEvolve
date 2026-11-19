@@ -288,6 +288,8 @@ export interface AgentConfig {
   gatewayId?: string;
   /** Trusted standalone-host native Codex profile alias; never a credential or path. */
   nativeCodexProfileId?: string;
+  /** Trusted standalone-host native Agy (Antigravity CLI) profile alias; never a credential or path. */
+  nativeAgyProfileId?: string;
   /** Model-level Gateway reasoning option. Absence means provider default. */
   gatewayReasoningOption?: string;
   /** Server-only snapshot captured when a project starts. */

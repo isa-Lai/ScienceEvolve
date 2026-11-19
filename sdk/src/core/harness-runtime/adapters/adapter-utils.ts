@@ -134,7 +134,7 @@ export async function prepareAdapterRuntime(
   mcpRows: AdapterMcpRow[];
 }> {
   const { request, spec, route } = context;
-  if ("nativeCodexProfileHome" in route) throw new Error("Native Codex profile routes cannot launch another Harness");
+  if ("nativeCodexProfileHome" in route || "nativeAgyProfileHome" in route) throw new Error("Native profile routes cannot launch another Harness");
   const config = request.project.agents[request.agent];
   if (!config) {
     throw new HarnessRuntimeError(

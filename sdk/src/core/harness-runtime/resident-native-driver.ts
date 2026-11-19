@@ -762,7 +762,7 @@ export class ResidentNativeDriver implements ResidentHarnessDriver {
 
   #consumeFreshTurnAuthority(turn: ResidentTurn): void {
     const routeDigest = createHash("sha256")
-      .update("nativeCodexProfileHome" in turn.route ? turn.route.authorityId : turn.route.token)
+      .update("nativeCodexProfileHome" in turn.route || "nativeAgyProfileHome" in turn.route ? turn.route.authorityId : turn.route.token)
       .digest("hex");
     if (this.#activatedRouteDigests.has(routeDigest)) {
       throw driverError("Resident native driver rejected a stale per-turn route");

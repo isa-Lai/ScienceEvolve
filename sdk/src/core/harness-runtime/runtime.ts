@@ -85,10 +85,12 @@ import {
   openInvocationGatewayRoute,
   openInvocationModelRoute,
   modelRouteBinding,
+  isNativeProfileRoute,
   type InvocationModelRoute,
   type AdapterModelRoute,
   type ModelRouteBinding,
-  type NativeCodexProfileResolver
+  type NativeCodexProfileResolver,
+  type NativeAgyProfileResolver
 } from "./gateway-route.js";
 import {
   prepareInvocationInputs,
@@ -167,6 +169,8 @@ export interface HarnessRuntimeOptions extends HarnessHostOptions {
   processHost?: CommonProcessHost;
   /** Standalone host-owned route resolver; omitted by the Web host. */
   resolveNativeCodexProfile?: NativeCodexProfileResolver;
+  /** Standalone host-owned Agy route resolver; omitted by the Web host. */
+  resolveNativeAgyProfile?: NativeAgyProfileResolver;
   /** Trusted SDK host workspace binding; omitted by the Web host. */
   resolveProjectWorkspace?: (projectId: string) => Promise<string | undefined>;
 }
@@ -442,6 +446,11 @@ function invocationAuthorityEnvironment(
     descriptor.nativeProtocol,
     hostEnvironment
   );
+  if ("nativeAgyProfileHome" in route) {
+    for (const key of ["OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_ORG_ID", "OPENAI_PROJECT_ID", "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT"]) {
+      delete common[key];
+    }
+  }
   const environment = buildInvocationEnvironment({ common, hostEnvironment });
   delete environment.HOME;
   delete environment.CODEX_HOME;
@@ -1544,7 +1553,7 @@ export class HarnessRuntimeFacade implements AgentRunner, AdapterSmokeProbeRunne
         : {}),
       validateGatewayTarget: this.options.validateGatewayTarget,
       bufferedResponseCache: new Map<string, Promise<BufferedProtocolResponse>>()
-    }, this.options.resolveNativeCodexProfile);
+    }, this.options.resolveNativeCodexProfile, this.options.resolveNativeAgyProfile);
   }
 
   /** Build one invocation-owned canonical ingress for raw resident protocol frames. */
@@ -2495,7 +2504,7 @@ export class HarnessRuntimeFacade implements AgentRunner, AdapterSmokeProbeRunne
         ...(adapter.descriptor.capabilities.assistantStreaming === "proxy-visible-output"
           ? { onVisibleAssistantDelta: (text: string) => eventIngress.acceptProxyDelta(text) }
           : {})
-      }, this.options.resolveNativeCodexProfile
+      }, this.options.resolveNativeCodexProfile, this.options.resolveNativeAgyProfile
     );
     let adapterRequest: HarnessAdapterRequest = adapterVisibleRequest(
       request,
@@ -2814,7 +2823,7 @@ export class HarnessRuntimeFacade implements AgentRunner, AdapterSmokeProbeRunne
         processHost,
         recoveryBudget: recoveryView,
         onTrace,
-        route: freezeRuntimeValue("nativeCodexProfileHome" in route ? modelRouteBinding(route) as import("./gateway-route.js").NativeCodexProfileBinding : {
+        route: freezeRuntimeValue(isNativeProfileRoute(route) ? modelRouteBinding(route) as import("./gateway-route.js").NativeCodexProfileBinding | import("./gateway-route.js").NativeAgyProfileBinding : {
           baseUrl: route.baseUrl,
           token: route.token,
           sourceProtocol: route.sourceProtocol,
