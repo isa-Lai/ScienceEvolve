@@ -335,7 +335,8 @@ export interface CollaborationRuntimeLifecycle {
   queueReadModel?(state: ProjectState): ProjectAgentQueueSource | undefined | Promise<ProjectAgentQueueSource | undefined>;
   /** SDK-only configuration roll-forward before its original scheduler starts. */
   recoverSerialWorkflowConfiguration?(state: ProjectState, options?: { recoverResultBoundaries?: boolean }): Promise<{ changed: boolean } | undefined>;
-  setResumeAgentModels?(state: ProjectState, model: string, requestId: string): Promise<void>;
+  setResumeAgentModels?(state: ProjectState, model: string, requestId: string,
+    target?: { harness: "codex" | "agy"; nativeProfileId: string }): Promise<void>;
   prepareSerialWorkflowAdjustments?(state: ProjectState): WorkflowAdjustmentContext["current"] | Promise<WorkflowAdjustmentContext["current"]>;
   pendingSerialWorkflowAdjustments?(state: ProjectState): WorkflowAdjustmentRecord[] | Promise<WorkflowAdjustmentRecord[]>;
   publishSerialWorkflowAdjustment?(state: ProjectState, requestId: string, authority: SerialWorkflowPublicationAuthority): Promise<WorkflowAdjustmentRecord>;
@@ -1342,18 +1343,31 @@ export class CollaborationRuntimeCoordinator implements CollaborationRuntimeLife
     return restoreSerialWorkflowConfiguration(this.database(), this.#storage, state, this.#validateWorkflowConfiguration);
   }
 
-  async setResumeAgentModels(state: ProjectState, model: string, requestId: string): Promise<void> {
+  async setResumeAgentModels(state: ProjectState, model: string, requestId: string,
+    target?: { harness: "codex" | "agy"; nativeProfileId: string }): Promise<void> {
     this.assertWritable();
     const database = this.database();
     const current = await database.workflowAdjustmentCurrent(state.id, credentialFreeAgentConfiguration({ agents: state.agents,
       skillDefinitions: state.skillDefinitions ?? {}, mcpDefinitions: state.mcpDefinitions ?? {} }));
     const proposal: AgentOrchestrationProposal = { ...structuredClone(current.snapshot),
       agents: restoreAgentConfiguration(current.snapshot, state.agents) };
-    for (const { name } of proposal.orchestration.agents) proposal.agents[name]!.model = model;
-    await this.assertSessionCompatibleWorkflow(state, proposal.orchestration, proposal.agents);
+    for (const { name } of proposal.orchestration.agents) {
+      const agent = proposal.agents[name]!;
+      agent.model = model;
+      if (target) {
+        agent.harness = target.harness;
+        delete agent.gatewayId; delete agent.gatewaySnapshot; delete agent.gatewayReasoningOption; delete agent.reasoningMigrationWarning;
+        if (target.harness === "agy") {
+          delete agent.nativeCodexProfileId; agent.nativeAgyProfileId = target.nativeProfileId;
+        } else {
+          delete agent.nativeAgyProfileId; agent.nativeCodexProfileId = target.nativeProfileId;
+        }
+      }
+    }
+    if (!target) await this.assertSessionCompatibleWorkflow(state, proposal.orchestration, proposal.agents);
     if (!this.#validateWorkflowConfiguration) throw new Error("Resume model overrides require the existing configuration validator");
     await this.#validateWorkflowConfiguration(state, proposal);
-    const result = await database.setResumeAgentModels(state.id, model, requestId, current.version.hash);
+    const result = await database.setResumeAgentModels(state.id, model, requestId, current.version.hash, target);
     if (!result.changed) return;
     if (state.git?.enabled) {
       await this.publishProjection(state, await database.projectState(state.id));

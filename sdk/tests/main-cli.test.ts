@@ -49,6 +49,22 @@ function actualKernelApi(onRun?: (request: Parameters<AgentRunner["run"]>[0]) =>
 }
 
 describe("main CLI transport with actual main Git-off kernel/SQLite, simulated Agent (no network)", () => {
+  it("accepts a native harness target for data migration and requires its profile alias", async () => {
+    const root = await directory(), migrateMainRuntimeData = vi.fn(async () => ({
+      destinationDataDir: path.join(root, "new-data"), runtimeRevision: "fixture-revision", projects: 2, agents: 4,
+      model: "gemini-fixture", harness: "agy" as const
+    }));
+    const services = { api: { ...mainApi, migrateMainRuntimeData }, ...output() };
+    const source = path.join(root, "source"), destination = path.join(root, "new-data");
+    expect(await runMainCli(["run", "migrate"], options(source, { output: destination, model: "gemini-fixture", harness: "agy", "native-profile": "login" }), services)).toBe(0);
+    expect(migrateMainRuntimeData).toHaveBeenCalledWith(expect.objectContaining({ sourceDataDir: source, destinationDataDir: destination,
+      model: "gemini-fixture", harness: "agy", nativeProfileId: "login" }));
+    await expect(runMainCli(["run", "migrate"], options(source, { output: destination, model: "fixture", harness: "codex" }), services))
+      .rejects.toThrow(/--native-profile is required/);
+    await expect(runMainCli(["run", "migrate"], options(source, { output: destination, model: "fixture", "native-profile": "login" }), services))
+      .rejects.toThrow(/requires --harness/);
+  });
+
   it("rejects removed Hermes inputs before opening a runtime or importing a gateway", async () => {
     const root = await directory(), create = vi.fn();
     const services = { api: { ...mainApi, createMainResearchSdk: create }, ...output() };

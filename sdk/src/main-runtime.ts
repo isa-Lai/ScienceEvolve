@@ -58,6 +58,8 @@ export interface MainApplicationRuntimeOptions {
   execution?: ConstructorParameters<typeof Orchestrator>[3];
   /** Internal migration mode: load and repair state without scheduling projects. */
   deferAutomaticRecovery?: boolean;
+  /** Internal migration mode: replace profile aliases in the copied destination only. */
+  migrationProfileRebind?: boolean;
   /** Inject credentials in memory. Never store tokens in workflow.json. */
   git?: {
     credentialResolver: GitHubCredentialResolver;
@@ -127,9 +129,9 @@ export async function createMainApplicationRuntime(options: MainApplicationRunti
     await lock.writeFile(JSON.stringify({ pid: process.pid, engine: "main-runtime", startedAt: new Date().toISOString() }));
     const fresh = await requireDedicatedDirectory(root);
     const nativeProfiles = new MainNativeCodexProfiles();
-    await nativeProfiles.initialize(root, options.nativeCodexProfiles, fresh);
+    await nativeProfiles.initialize(root, options.nativeCodexProfiles, fresh, options.migrationProfileRebind === true);
     const nativeAgyProfiles = new MainNativeAgyProfiles();
-    await nativeAgyProfiles.initialize(root, options.nativeAgyProfiles, fresh);
+    await nativeAgyProfiles.initialize(root, options.nativeAgyProfiles, fresh, options.migrationProfileRebind === true);
     const sourceWorkspaces = new MainSourceWorkspaceStore(root);
     await sourceWorkspaces.initialize(fresh);
     const projectWorkspaces = new MainProjectWorkspaceStore(root);
@@ -287,10 +289,12 @@ export async function createMainApplicationRuntime(options: MainApplicationRunti
   }
 }
 
-const SUPPORTED_MIGRATION_SOURCE = {
-  sourceCommit: "61d257921a5c98903d305941e450b27e6a757af1",
-  runtimeRevision: "61d257921a5c98903d305941e450b27e6a757af1+5b16d1f83fc9c54a"
-} as const;
+const SUPPORTED_MIGRATION_SOURCES = [
+  { sourceCommit: "61d257921a5c98903d305941e450b27e6a757af1", runtimeRevision: "61d257921a5c98903d305941e450b27e6a757af1+5b16d1f83fc9c54a" },
+  // Current installed releases can be copied too, which supports Agy -> Codex as well as Codex -> Agy.
+  { sourceCommit: "1385b7c85ae920746d45b7ffac715764b3e3a503", runtimeRevision: "1385b7c85ae920746d45b7ffac715764b3e3a503+1f5c7e8b50d2f552" },
+  { sourceCommit: MAIN_RUNTIME_SOURCE_COMMIT, runtimeRevision: MAIN_RUNTIME_REVISION }
+] as const;
 
 async function migrationTreeDigest(root: string): Promise<string> {
   const hash = createHash("sha256");
@@ -308,13 +312,15 @@ async function migrationTreeDigest(root: string): Promise<string> {
   return hash.digest("hex");
 }
 
-/** Copy one explicitly supported older runtime, persist every Agent model, and leave scheduling deferred. */
+/** Copy one explicitly supported older runtime, persist model/Harness choices, and leave scheduling deferred. */
 export async function migrateMainRuntimeData(input: {
   sourceDataDir: string;
   destinationDataDir: string;
   model: string;
-  runtime?: Omit<MainApplicationRuntimeOptions, "dataDir" | "deferAutomaticRecovery">;
-}): Promise<{ destinationDataDir: string; runtimeRevision: string; projects: number; agents: number; model: string }> {
+  harness?: "codex" | "agy";
+  nativeProfileId?: string;
+  runtime?: Omit<MainApplicationRuntimeOptions, "dataDir" | "deferAutomaticRecovery" | "migrationProfileRebind">;
+}): Promise<{ destinationDataDir: string; runtimeRevision: string; projects: number; agents: number; model: string; harness?: "codex" | "agy" }> {
   const source = path.resolve(input.sourceDataDir), destination = path.resolve(input.destinationDataDir);
   if (!path.isAbsolute(input.sourceDataDir) || !path.isAbsolute(input.destinationDataDir)) throw new Error("Migration source and destination must be absolute paths");
   if (source === destination || source.startsWith(`${destination}${path.sep}`) || destination.startsWith(`${source}${path.sep}`)) {
@@ -322,6 +328,10 @@ export async function migrateMainRuntimeData(input: {
   }
   const model = input.model.trim();
   if (!model || model.length > 200) throw new Error("Migration model must be nonempty and at most 200 characters");
+  if (input.harness && !["codex", "agy"].includes(input.harness)) throw new Error("Migration harness must be codex or agy");
+  if (input.harness && (!input.nativeProfileId || !/^[A-Za-z0-9_-]{1,80}$/.test(input.nativeProfileId)))
+    throw new Error("A native profile ID is required when changing the migration harness");
+  if (!input.harness && input.nativeProfileId !== undefined) throw new Error("A native profile ID requires --harness");
   const lockPath = path.join(source, ".scienceevolve-runtime.lock");
   const assertSourceUnlocked = async () => {
     try { await fs.access(lockPath); throw new Error("Migration source has a runtime lock; confirm its owner has stopped before migration"); }
@@ -331,7 +341,7 @@ export async function migrateMainRuntimeData(input: {
   const markerPath = path.join(source, MAIN_RUNTIME_MARKER);
   const marker = JSON.parse(await fs.readFile(markerPath, "utf8"));
   if (marker.schemaVersion !== 1 || marker.engine !== "main-runtime" ||
-      marker.sourceCommit !== SUPPORTED_MIGRATION_SOURCE.sourceCommit || marker.runtimeRevision !== SUPPORTED_MIGRATION_SOURCE.runtimeRevision) {
+      !SUPPORTED_MIGRATION_SOURCES.some((supported) => marker.sourceCommit === supported.sourceCommit && marker.runtimeRevision === supported.runtimeRevision)) {
     throw new Error("Migration source runtime revision is not in the explicitly supported migration set");
   }
   await fs.mkdir(path.dirname(destination), { recursive: true });
@@ -366,19 +376,22 @@ export async function migrateMainRuntimeData(input: {
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
-    migrationRuntime = await createMainApplicationRuntime({ ...input.runtime, dataDir: destination, deferAutomaticRecovery: true });
+    migrationRuntime = await createMainApplicationRuntime({ ...input.runtime, dataDir: destination,
+      deferAutomaticRecovery: true, migrationProfileRebind: Boolean(input.harness) });
     const states = await migrationRuntime.storage.listStates();
     let agents = 0;
     for (const state of states) {
       if (["completed", "cancelled"].includes(state.status) || state.archivedAt) continue;
       agents += state.orchestration.agents.filter(({ name }) => state.agents[name]).length;
-      await migrationRuntime.orchestrator.migrateAgentModels(state.id, model);
+      await migrationRuntime.orchestrator.migrateAgentModels(state.id, model,
+        input.harness ? { harness: input.harness, nativeProfileId: input.nativeProfileId! } : undefined);
     }
     await migrationRuntime.close();
     migrationRuntime = undefined;
     await assertSourceUnlocked();
     if (await migrationTreeDigest(source) !== sourceDigest) throw new Error("Migration source changed while migration was in progress");
-    return { destinationDataDir: destination, runtimeRevision: MAIN_RUNTIME_REVISION, projects: states.filter((state) => !["completed", "cancelled"].includes(state.status) && !state.archivedAt).length, agents, model };
+    return { destinationDataDir: destination, runtimeRevision: MAIN_RUNTIME_REVISION, projects: states.filter((state) => !["completed", "cancelled"].includes(state.status) && !state.archivedAt).length, agents, model,
+      ...(input.harness ? { harness: input.harness } : {}) };
   } catch (error) {
     if (migrationRuntime) await migrationRuntime.close();
     await fs.rm(destination, { recursive: true, force: true });

@@ -5,7 +5,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { createMainApplicationRuntime, MAIN_RUNTIME_MARKER, MAIN_RUNTIME_SOURCE_COMMIT, MAIN_RUNTIME_REVISION, type MainApplicationRuntime } from "../src/main-runtime.js";
+import { createMainApplicationRuntime, migrateMainRuntimeData, MAIN_RUNTIME_MARKER, MAIN_RUNTIME_SOURCE_COMMIT, MAIN_RUNTIME_REVISION, type MainApplicationRuntime } from "../src/main-runtime.js";
 import { trackMainResidents, trackResidentOpens } from "../src/main-resident-tracker.js";
 import type { CollaborationResidentLauncher, CollaborationResidentOpenInput } from "../src/core/collaboration-runtime.js";
 import { ProductionCollaborationExecutionInputBuilder } from "../src/core/collaboration-runtime.js";
@@ -32,6 +32,138 @@ async function host(root: string) {
 }
 
 describe("standalone main runtime host (local, no model/GitHub acceptance)", () => {
+  it("migrates an existing paused project from Codex to Agy, archives its old Session, and leaves source untouched", async () => {
+    const root = await directory(), source = path.join(root, "source"), destination = path.join(root, "destination");
+    const profile = path.join(root, "home", ".gemini", "antigravity-cli");
+    await fs.mkdir(profile, { recursive: true });
+    await fs.writeFile(path.join(profile, "antigravity-oauth-token"), "fixture-token");
+    await fs.writeFile(path.join(profile, "settings.json"), '{"selectedAuthType":"oauth-personal"}');
+    let started!: () => void;
+    const agentStarted = new Promise<void>(resolve => { started = resolve; });
+    const observedHarnesses: string[] = [];
+    const runner: AgentRunner = {
+      harnessCatalog: async () => harnessCatalogRegistry.list().map((descriptor) => toPublicHarnessDescriptor(descriptor, { available: true })),
+      run: async (request) => {
+        observedHarnesses.push(request.project.agents[request.agent]!.harness ?? "codex");
+        started();
+        await new Promise<void>(resolve => {
+          if (request.signal.aborted) resolve();
+          else request.signal.addEventListener("abort", () => resolve(), { once: true });
+        });
+        throw new Error("paused migration fixture");
+      }
+    };
+    const sourceRuntime = await createMainApplicationRuntime({ dataDir: source, skillRoots: [], internal: {
+      runner, residentLauncher: { open: async () => { throw new Error("Git-off fixture must not launch a resident"); } }
+    } });
+    runtimes.push(sourceRuntime);
+    const gateway = await sourceRuntime.gatewayStore.create({ name: "fixture", url: "https://93.184.216.34/v1",
+      apiKey: "fixture-not-a-live-secret", models: ["fixture-model"], defaultModel: "fixture-model", protocol: "responses" });
+    const project = await sourceRuntime.orchestrator.createProject({ title: "Harness migration", requirement: "Continue with a fresh harness session.",
+      git: { enabled: false }, agents: { main: { model: "fixture-model", gatewayId: gateway.id, harness: "codex", skills: [], autoSkills: [] } },
+      orchestration: { agents: [{ name: "main", template: "main" }], input: { source: "input", target: "main" }, routes: { main: [] },
+        decisionPlans: { main: "Continue" }, termination: { agent: "main", condition: "Done", decisionBy: "main", automatic: false },
+        resultFormat: { presets: [], custom: "" } } });
+    await agentStarted;
+    await sourceRuntime.orchestrator.pause(project.id);
+    await vi.waitFor(async () => expect((await sourceRuntime.orchestrator.getProject(project.id)).status).toBe("paused"));
+    const sourceState = await sourceRuntime.storage.loadState(project.id);
+    const oldSession = { schemaVersion: 1 as const, harnessId: "codex", adapterVersion: "codex-fixture-v1", generation: 0,
+      nativeId: "codex-old-session", durable: true, createdAt: new Date().toISOString() };
+    sourceState!.agentSessions = { main: oldSession };
+    sourceState!.agentSessionIds = { main: "codex-old-session" };
+    await sourceRuntime.storage.saveState(sourceState!);
+    await sourceRuntime.close();
+    const sourceMarkerPath = path.join(source, MAIN_RUNTIME_MARKER);
+    await fs.writeFile(sourceMarkerPath, JSON.stringify({ schemaVersion: 1, engine: "main-runtime",
+      sourceCommit: "61d257921a5c98903d305941e450b27e6a757af1",
+      runtimeRevision: "61d257921a5c98903d305941e450b27e6a757af1+5b16d1f83fc9c54a" }) + "\n");
+    const sourceStateBefore = await fs.readFile(path.join(source, "projects", project.id, "state.json"));
+    const result = await migrateMainRuntimeData({ sourceDataDir: source, destinationDataDir: destination, model: "gemini-fixture",
+      harness: "agy", nativeProfileId: "login", runtime: { nativeAgyProfiles: { login: profile }, skillRoots: [], internal: {
+        runner, residentLauncher: { open: async () => { throw new Error("Deferred migration must not launch a resident"); } }
+      } } });
+    expect(result).toMatchObject({ projects: 1, agents: 1, model: "gemini-fixture", harness: "agy" });
+    expect(await fs.readFile(path.join(source, "projects", project.id, "state.json"))).toEqual(sourceStateBefore);
+    const migrated = await createMainApplicationRuntime({ dataDir: destination, nativeAgyProfiles: { login: profile }, skillRoots: [], internal: {
+      runner, residentLauncher: { open: async () => { throw new Error("Paused migration fixture must not launch a resident"); } }
+    } });
+    runtimes.push(migrated);
+    const state = await migrated.storage.loadState(project.id);
+    expect(state?.agents.main).toMatchObject({ harness: "agy", nativeAgyProfileId: "login", model: "gemini-fixture" });
+    expect(state?.agents.main).not.toHaveProperty("gatewayId");
+    expect(state?.agentSessions?.main).toBeUndefined();
+    expect(state?.agentSessionIds?.main).toBeUndefined();
+    expect(state?.archivedAgentSessions).toContainEqual(expect.objectContaining({ agentId: "main", harnessId: "codex",
+      sessions: { main: { session: oldSession, legacyId: "codex-old-session" } } }));
+    expect((await migrated.orchestrator.getProject(project.id)).status).toBe("paused");
+    await migrated.orchestrator.resume(project.id);
+    await vi.waitFor(() => expect(observedHarnesses.at(-1)).toBe("agy"));
+    await migrated.orchestrator.pause(project.id);
+    await vi.waitFor(async () => expect((await migrated.orchestrator.getProject(project.id)).status).toBe("paused"));
+  });
+
+  it("migrates a current Agy project back to Codex with a fresh native session", async () => {
+    const root = await directory(), source = path.join(root, "agy-source"), destination = path.join(root, "codex-destination");
+    const agyProfile = path.join(root, "home", ".gemini", "antigravity-cli"), codexProfile = path.join(root, "codex-profile");
+    await fs.mkdir(agyProfile, { recursive: true }); await fs.mkdir(codexProfile, { recursive: true });
+    await fs.writeFile(path.join(agyProfile, "antigravity-oauth-token"), "fixture-token");
+    await fs.writeFile(path.join(agyProfile, "settings.json"), '{"selectedAuthType":"oauth-personal"}');
+    await fs.writeFile(path.join(codexProfile, "config.toml"), 'model_provider="fixture"\n');
+    let started!: () => void;
+    const agentStarted = new Promise<void>(resolve => { started = resolve; });
+    const observedHarnesses: string[] = [];
+    const runner: AgentRunner = {
+      harnessCatalog: async () => harnessCatalogRegistry.list().map((descriptor) => toPublicHarnessDescriptor(descriptor, { available: true })),
+      run: async (request) => {
+        observedHarnesses.push(request.project.agents[request.agent]!.harness ?? "codex");
+        started();
+        await new Promise<void>(resolve => {
+          if (request.signal.aborted) resolve();
+          else request.signal.addEventListener("abort", () => resolve(), { once: true });
+        });
+        throw new Error("paused migration fixture");
+      }
+    };
+    const sourceRuntime = await createMainApplicationRuntime({ dataDir: source, nativeAgyProfiles: { login: agyProfile }, skillRoots: [], internal: {
+      runner, residentLauncher: { open: async () => { throw new Error("Git-off fixture must not launch a resident"); } }
+    } });
+    runtimes.push(sourceRuntime);
+    const project = await sourceRuntime.orchestrator.createProject({ title: "Reverse harness migration", requirement: "Continue on Codex.",
+      git: { enabled: false }, agents: { main: { model: "gemini-fixture", harness: "agy", nativeAgyProfileId: "login", skills: [], autoSkills: [] } },
+      orchestration: { agents: [{ name: "main", template: "main" }], input: { source: "input", target: "main" }, routes: { main: [] },
+        decisionPlans: { main: "Continue" }, termination: { agent: "main", condition: "Done", decisionBy: "main", automatic: false },
+        resultFormat: { presets: [], custom: "" } } });
+    await agentStarted;
+    await sourceRuntime.orchestrator.pause(project.id);
+    await vi.waitFor(async () => expect((await sourceRuntime.orchestrator.getProject(project.id)).status).toBe("paused"));
+    const state = await sourceRuntime.storage.loadState(project.id);
+    const oldSession = { schemaVersion: 1 as const, harnessId: "agy", adapterVersion: "agy-fixture-v1", generation: 2,
+      nativeId: "agy-old-session", durable: true, createdAt: new Date().toISOString() };
+    state!.agentSessions = { main: oldSession }; state!.agentSessionIds = { main: "agy-old-session" };
+    await sourceRuntime.storage.saveState(state!); await sourceRuntime.close();
+    const result = await migrateMainRuntimeData({ sourceDataDir: source, destinationDataDir: destination, model: "codex-fixture",
+      harness: "codex", nativeProfileId: "login", runtime: { nativeCodexProfiles: { login: codexProfile }, skillRoots: [], internal: {
+        runner, residentLauncher: { open: async () => { throw new Error("Deferred migration must not launch a resident"); } }
+      } } });
+    expect(result).toMatchObject({ projects: 1, agents: 1, model: "codex-fixture", harness: "codex" });
+    const migrated = await createMainApplicationRuntime({ dataDir: destination, nativeCodexProfiles: { login: codexProfile }, skillRoots: [], internal: {
+      runner, residentLauncher: { open: async () => { throw new Error("Paused migration fixture must not launch a resident"); } }
+    } });
+    runtimes.push(migrated);
+    const migratedState = await migrated.storage.loadState(project.id);
+    expect(migratedState?.agents.main).toMatchObject({ harness: "codex", nativeCodexProfileId: "login", model: "codex-fixture" });
+    expect(migratedState?.agents.main).not.toHaveProperty("nativeAgyProfileId");
+    expect(migratedState?.agentSessions?.main).toBeUndefined();
+    expect(migratedState?.archivedAgentSessions).toContainEqual(expect.objectContaining({ agentId: "main", harnessId: "agy",
+      sessions: { main: { session: oldSession, legacyId: "agy-old-session" } } }));
+    expect((await migrated.orchestrator.getProject(project.id)).status).toBe("paused");
+    await migrated.orchestrator.resume(project.id);
+    await vi.waitFor(() => expect(observedHarnesses.at(-1)).toBe("codex"));
+    await migrated.orchestrator.pause(project.id);
+    await vi.waitFor(async () => expect((await migrated.orchestrator.getProject(project.id)).status).toBe("paused"));
+  });
+
   it("verifies the pinned main closure without a main checkout", () => {
     const script = fileURLToPath(new URL("../scripts/sync-main-runtime.mjs", import.meta.url));
     const output = execFileSync(process.execPath, [script, "--check"], { cwd: os.tmpdir(), encoding: "utf8" });
@@ -133,9 +265,9 @@ describe("standalone main runtime host (local, no model/GitHub acceptance)", () 
     expect(run).toHaveBeenCalledTimes(1);
     const storedState = await runtime.storage.loadState(project.id);
     const documents = runtime.collaborationRuntime.projectStateDocuments();
-    expect(documents.domain(project.id)).toMatchObject({ protocol: "project-state-v1", scheduler: "serial" });
-    expect(documents.read(project.id, "project.checkpoint")!.value).toMatchObject({ id: project.id, status: "completed" });
-    expect(documents.read(project.id, "sii.ledger")!.value).toEqual({ version: 1, experiments: [], waits: [] });
+    expect(await documents.domain(project.id)).toMatchObject({ protocol: "project-state-v1", scheduler: "serial" });
+    expect((await documents.read(project.id, "project.checkpoint"))!.value).toMatchObject({ id: project.id, status: "completed" });
+    expect((await documents.read(project.id, "sii.ledger"))!.value).toEqual({ version: 1, experiments: [], waits: [] });
     const exportedState = path.join(runtime.storage.projectDir(project.id), "state.json");
     expect(JSON.parse(await fs.readFile(exportedState, "utf8"))).toMatchObject({
       formalState: { protocol: "project-state-v1", source: "sqlite" }, view: { status: "completed" }

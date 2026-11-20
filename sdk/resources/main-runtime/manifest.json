@@ -107,7 +107,7 @@
       "configSha256": "ff4bd6f94e96b4da543ea245f3ae3d9db4545a43976619d497afb93a128281b8"
     }
   },
-  "runtimeRevision": "1385b7c85ae920746d45b7ffac715764b3e3a503+1f5c7e8b50d2f552",
+  "runtimeRevision": "1385b7c85ae920746d45b7ffac715764b3e3a503+df12530e54f82675",
   "files": [
     {
       "source": "server/src/acceptance-controller.ts",
@@ -464,10 +464,10 @@
     {
       "source": "server/src/collaboration-runtime.ts",
       "target": "src/core/collaboration-runtime.ts",
-      "sourceSha256": "f38ebbeb712b40ddf8aac8acfce1b7d86319252c156177655a58210cd2bad452",
+      "sourceSha256": "ee0f700b1e096561cb09f34f0a6d65ac9bdff0a4fc2da2003bc37666582fa2fb",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "f38ebbeb712b40ddf8aac8acfce1b7d86319252c156177655a58210cd2bad452"
+      "sha256": "ee0f700b1e096561cb09f34f0a6d65ac9bdff0a4fc2da2003bc37666582fa2fb"
     },
     {
       "source": "server/src/collaboration-state/contracts.ts",
@@ -520,10 +520,10 @@
     {
       "source": "server/src/collaboration-state/store.ts",
       "target": "src/core/collaboration-state/store.ts",
-      "sourceSha256": "a39faed9152ac16d6ef780f342d447cb89a534bfd8f4af5bdcc4070da1562d9b",
+      "sourceSha256": "9a0e3fb05bb1a2a9b3a46b6b939ad0a2d760f46b9706e48d43b3148a7aef6765",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "a39faed9152ac16d6ef780f342d447cb89a534bfd8f4af5bdcc4070da1562d9b"
+      "sha256": "9a0e3fb05bb1a2a9b3a46b6b939ad0a2d760f46b9706e48d43b3148a7aef6765"
     },
     {
       "source": "server/src/collaboration-state/writer-lease-heartbeat.ts",
@@ -1304,10 +1304,10 @@
     {
       "source": "server/src/orchestrator.ts",
       "target": "src/core/orchestrator.ts",
-      "sourceSha256": "0105152a3555fa058ededb4409e17ad37b2e76ce77b842f9faa2b55da437b386",
+      "sourceSha256": "fdf0423c6a3bce203609857ff04d3b7b926dfdd707d8ac78fec4b22d15f440c5",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "0105152a3555fa058ededb4409e17ad37b2e76ce77b842f9faa2b55da437b386"
+      "sha256": "fdf0423c6a3bce203609857ff04d3b7b926dfdd707d8ac78fec4b22d15f440c5"
     },
     {
       "source": "server/src/project-directory-aliases.ts",
@@ -1800,10 +1800,10 @@
     {
       "source": "server/src/workflow-session-archive.ts",
       "target": "src/core/workflow-session-archive.ts",
-      "sourceSha256": "2d07c2b9b98f35962b33e52d2811e59d6de1a25d232fef6982858138d9ac4302",
+      "sourceSha256": "ed2ab4a341352268b8332b7569d3aa142ef959a81bd289864fe830eb1b58dfa6",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "2d07c2b9b98f35962b33e52d2811e59d6de1a25d232fef6982858138d9ac4302"
+      "sha256": "ed2ab4a341352268b8332b7569d3aa142ef959a81bd289864fe830eb1b58dfa6"
     },
     {
       "source": "server/src/workflow-session-compatibility.ts",

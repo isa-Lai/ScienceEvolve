@@ -23,8 +23,9 @@ Usage: scievolve <command> [--engine main] --data-dir <absolute-dedicated-direct
   run list | show ID | events ID [--after-seq N]
   run resume ID [--model M] | retry-git ID
             --model changes every configured Agent's model and saves the override
-  run migrate --output <absolute-new-directory> --model M
-            Copies the source data, defers recovery, saves M for every runnable Agent, then closes.
+  run migrate --output <absolute-new-directory> --model M [--harness codex|agy --native-profile ID]
+            Copies source data, defers recovery, saves M for every runnable Agent, then closes.
+            --harness starts fresh sessions on the selected native Harness; prior sessions are archived.
   run pause ID | cancel ID
   run export ID --output <absolute-new-directory>
   run sync-workspace ID
@@ -268,11 +269,17 @@ export async function runMainCli(positionals, options, services = {}) {
     } else throw new Error(`Unknown main gateway command: ${action ?? ""}`);
   } else if (command === "run") {
     if (action === "migrate") {
-      only(["output", "model"], 0, args);
+      only(["output", "model", "harness", "native-profile"], 0, args);
       const sourceDataDir = required("data-dir"), destinationDataDir = required("output"), model = required("model");
       if (!path.isAbsolute(sourceDataDir) || !path.isAbsolute(destinationDataDir)) throw new Error("Migration source and --output must be absolute paths");
+      const harness = options.has("harness") ? required("harness").trim() : undefined;
+      if (harness !== undefined && !["codex", "agy"].includes(harness)) throw new Error("--harness must be codex or agy");
+      const nativeProfileId = options.has("native-profile") ? required("native-profile").trim() : undefined;
+      if (harness && !nativeProfileId) throw new Error("--native-profile is required with --harness");
+      if (!harness && nativeProfileId) throw new Error("--native-profile requires --harness");
       const config = options.has("runtime-config") ? await api.loadMainRuntimeConfig(required("runtime-config")) : {};
-      const migration = await api.migrateMainRuntimeData({ sourceDataDir, destinationDataDir, model, runtime: config });
+      const migration = await api.migrateMainRuntimeData({ sourceDataDir, destinationDataDir, model,
+        ...(harness ? { harness, nativeProfileId } : {}), runtime: config });
       line({ type: "runtime.migrated", engine: "main", ...migration, automaticRecovery: "deferred" });
     } else if (action === "start") {
       only(["title", "preset-id", "model", "harness", "gateway", "gateway-bindings", "native-codex-profile", "native-agy-profile", "workspace", "source-workspace", "source-files", "inputs", "inputs-file", "input-description"], 2, args);

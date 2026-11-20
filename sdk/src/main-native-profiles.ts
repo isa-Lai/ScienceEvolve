@@ -10,7 +10,8 @@ async function persistNativeProfileRegistry<T>(
   fresh: boolean,
   label: string,
   normalize: (id: string, input: string) => Promise<T>,
-  serialize: (value: T) => string = (value) => String(value)
+  serialize: (value: T) => string = (value) => String(value),
+  allowMigrationRebind = false
 ): Promise<Readonly<Record<string, T>>> {
   const entries: Record<string, T> = {};
   const persisted: Record<string, string> = {};
@@ -26,12 +27,15 @@ async function persistNativeProfileRegistry<T>(
     // Previous migration previews did not have native routes. A missing registry
     // can only reopen with no profiles; enabling it requires a new data directory.
     const info = await fs.lstat(file).catch((error: NodeJS.ErrnoException) => {
-      if (error.code === "ENOENT" && Object.keys(persisted).length === 0) return undefined;
+      if (error.code === "ENOENT" && (Object.keys(persisted).length === 0 || allowMigrationRebind)) return undefined;
       throw error;
     });
     if (info && (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1 || info.size > 256_000)) throw new Error("Native profile registry is not a bounded regular private file");
     const existing = info ? await fs.readFile(file, "utf8") : "{}";
-    if (JSON.stringify(JSON.parse(existing)) !== JSON.stringify(persisted)) throw new Error(`Native ${label} profile bindings changed; reopen with the original deployment configuration`);
+    if (JSON.stringify(JSON.parse(existing)) !== JSON.stringify(persisted)) {
+      if (!allowMigrationRebind) throw new Error(`Native ${label} profile bindings changed; reopen with the original deployment configuration`);
+      await fs.writeFile(file, JSON.stringify(persisted) + "\n", { mode: 0o600 });
+    }
   }
   return Object.freeze(entries);
 }
@@ -39,7 +43,7 @@ async function persistNativeProfileRegistry<T>(
 /** Explicit deployment authority. No reading/copying auth.json and no native config writes. */
 export class MainNativeCodexProfiles {
   #homes: Readonly<Record<string, string>> = {};
-  async initialize(dataDir: string, configured: Record<string, string> = {}, fresh: boolean) {
+  async initialize(dataDir: string, configured: Record<string, string> = {}, fresh: boolean, allowMigrationRebind = false) {
     this.#homes = await persistNativeProfileRegistry(
       dataDir,
       ".scienceevolve-native-codex-profiles.json",
@@ -52,7 +56,7 @@ export class MainNativeCodexProfiles {
         const config = await fs.lstat(path.join(home, "config.toml"));
         if (!config.isFile() || config.isSymbolicLink()) throw new Error("Native Codex profile requires a regular config.toml");
         return home;
-      }
+      }, (value) => String(value), allowMigrationRebind
     );
   }
   async resolve(id: string): Promise<string> {
@@ -66,7 +70,7 @@ export class MainNativeCodexProfiles {
 /** Explicit Antigravity CLI deployment authority. Verifies login profile layout without reading tokens. */
 export class MainNativeAgyProfiles {
   #layouts: Readonly<Record<string, ResolvedNativeAgyProfileLayout>> = {};
-  async initialize(dataDir: string, configured: Record<string, string> = {}, fresh: boolean) {
+  async initialize(dataDir: string, configured: Record<string, string> = {}, fresh: boolean, allowMigrationRebind = false) {
     this.#layouts = await persistNativeProfileRegistry(
       dataDir,
       ".scienceevolve-native-agy-profiles.json",
@@ -74,7 +78,8 @@ export class MainNativeAgyProfiles {
       fresh,
       "agy",
       async (_id, input) => await resolveAgyProfileLayout(input),
-      (layout) => layout.profileHome
+      (layout) => layout.profileHome,
+      allowMigrationRebind
     );
   }
   async resolve(id: string): Promise<ResolvedNativeAgyProfileLayout> {

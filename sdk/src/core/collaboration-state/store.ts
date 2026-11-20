@@ -5090,13 +5090,26 @@ export class CollaborationStateDatabase {
 
   private retainedWorkflowNativeHarnesses(projectId: string): Record<string, string[]> {
     this.assertOpen();
-    const rows = this.database.prepare(`SELECT DISTINCT agent_id,
-      json_extract(payload_json, '$.binding.session.harnessId') AS harness_id FROM project_events INDEXED BY workflow_native_session_harness
-      WHERE project_id = ? AND event_type = 'agent.native_binding.opened'`).all(projectId) as Row[];
+    const rows = this.database.prepare(`SELECT opened.agent_id,
+      json_extract(opened.payload_json, '$.binding.session.harnessId') AS harness_id, opened.seq
+      FROM project_events AS opened INDEXED BY workflow_native_session_harness
+      WHERE opened.project_id = ? AND opened.event_type = 'agent.native_binding.opened'`)
+      .all(projectId) as Row[];
+    const migrations = this.database.prepare(`SELECT seq, payload_json FROM project_events
+      WHERE project_id = ? AND request_id LIKE 'runtime-harness-migration:%' ORDER BY seq`).all(projectId) as Row[];
+    const migratedConfigurations = migrations.map(row => {
+      const payload = parseJson<{ configuration?: ScopedAgentConfiguration }>(row.payload_json, {});
+      if (!payload.configuration || !payload.configuration.agents || !Number.isSafeInteger(row.seq))
+        throw new CollaborationStateError("DATABASE_INTEGRITY_FAILED", "Native Harness migration lost its committed Agent configuration");
+      return { seq: Number(row.seq), agents: payload.configuration.agents };
+    });
     const harnesses = new Map<string, string[]>();
     for (const row of rows) {
       if (typeof row.agent_id !== "string" || !row.agent_id || typeof row.harness_id !== "string" || !row.harness_id)
         throw new CollaborationStateError("DATABASE_INTEGRITY_FAILED", "Trusted native binding lost its original Agent or Harness");
+      const superseded = migratedConfigurations.some(migration => migration.seq > Number(row.seq) &&
+        migration.agents[row.agent_id]?.harness !== row.harness_id);
+      if (superseded) continue;
       const bound = harnesses.get(row.agent_id) ?? []; bound.push(row.harness_id); harnesses.set(row.agent_id, bound);
     }
     return Object.fromEntries(harnesses);
@@ -5751,8 +5764,9 @@ export class CollaborationStateDatabase {
     });
   }
 
-  /** Persist a host-authorized model override without changing workflow topology or Harness bindings. */
-  setResumeAgentModels(projectId: string, model: string, requestId: string, expectedConfigurationHash: string): { changed: boolean } {
+  /** Persist a host-authorized model override and, for data migration, a native Harness binding. */
+  setResumeAgentModels(projectId: string, model: string, requestId: string, expectedConfigurationHash: string,
+    target?: { harness: "codex" | "agy"; nativeProfileId: string }): { changed: boolean } {
     const selected = model.trim();
     if (!selected || selected.length > 200) throw new CollaborationStateError("INVALID_STATE_TRANSITION", "Resume model must be nonempty and at most 200 characters");
     if (!requestId || requestId.length > 200 || requestId !== requestId.trim())
@@ -5760,7 +5774,9 @@ export class CollaborationStateDatabase {
     return this.mutateProject(projectId, undefined, head => {
       const prior = this.eventByRequestId(projectId, requestId);
       if (prior) {
-        if (prior.type !== "scoped.configuration.applied" || !Object.values((prior.payload.configuration as ScopedAgentConfiguration).agents).every(agent => agent.model === selected))
+        if (prior.type !== "scoped.configuration.applied" || !Object.values((prior.payload.configuration as ScopedAgentConfiguration).agents).every(agent =>
+          agent.model === selected && (!target || agent.harness === target.harness &&
+            (target.harness === "agy" ? agent.nativeAgyProfileId : agent.nativeCodexProfileId) === target.nativeProfileId)))
           throw new CollaborationStateError("IDEMPOTENCY_CONFLICT", "Resume model request identity was already used for another configuration");
         return { changed: false, value: { changed: false } };
       }
@@ -5778,8 +5794,24 @@ export class CollaborationStateDatabase {
         if (this.scopedAgentHasLiveInvocation(projectId, name))
           throw new CollaborationStateError("INVALID_STATE_TRANSITION", `Cannot change resume model while Agent ${name} has a live invocation`);
         agents[name]!.model = selected;
+        if (target) {
+          agents[name]!.harness = target.harness;
+          delete agents[name]!.gatewayId;
+          delete agents[name]!.gatewaySnapshot;
+          delete agents[name]!.gatewayReasoningOption;
+          delete agents[name]!.reasoningMigrationWarning;
+          if (target.harness === "agy") {
+            delete agents[name]!.nativeCodexProfileId;
+            agents[name]!.nativeAgyProfileId = target.nativeProfileId;
+          } else {
+            delete agents[name]!.nativeAgyProfileId;
+            agents[name]!.nativeCodexProfileId = target.nativeProfileId;
+          }
+        }
       }
-      if (names.every(name => current.snapshot.agents[name]!.model === selected))
+      if (names.every(name => current.snapshot.agents[name]!.model === selected && (!target ||
+        current.snapshot.agents[name]!.harness === target.harness &&
+        (target.harness === "agy" ? current.snapshot.agents[name]!.nativeAgyProfileId : current.snapshot.agents[name]!.nativeCodexProfileId) === target.nativeProfileId)))
         return { changed: false, value: { changed: false } };
       this.recordScopedConfiguration(head, { agents, skillDefinitions: current.snapshot.skillDefinitions,
         mcpDefinitions: current.snapshot.mcpDefinitions }, head.workflow_revision, requestId);

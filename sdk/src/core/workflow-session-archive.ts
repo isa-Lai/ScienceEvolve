@@ -28,6 +28,42 @@ export function archiveRemovedWorkflowAgentSessions(state: ProjectState, nextAge
   if (archived.length) state.archivedAgentSessions = archived;
 }
 
+/** Retire active native Sessions at an explicit, offline Harness migration boundary. */
+export function archiveWorkflowAgentSessionsForHarnessMigration(state: ProjectState, affectedAgents?: readonly string[]): void {
+  const archived = [...(state.archivedAgentSessions ?? [])];
+  const keys = new Set([...Object.keys(state.agentSessions ?? {}), ...Object.keys(state.agentSessionIds ?? {})]);
+  const agents = affectedAgents ?? Object.keys(state.agents);
+  for (const agentId of agents) {
+    const config = state.agents[agentId];
+    if (!config) continue;
+    const sessions: ArchivedWorkflowAgentSessions["sessions"] = {};
+    for (const key of [...keys].sort()) {
+      if (!collaborationSessionBelongsToAgent(key, agentId)) continue;
+      const session = state.agentSessions?.[key], legacyId = state.agentSessionIds?.[key];
+      if (!session && !legacyId) continue;
+      sessions[key] = { ...(session ? { session: structuredClone(session) } : {}), ...(legacyId ? { legacyId } : {}) };
+    }
+    if (Object.keys(sessions).length) {
+      const definition = state.orchestration.agents.find(agent => agent.name === agentId);
+      const entry: ArchivedWorkflowAgentSessions = { agentId, harnessId: config.harness ?? DEFAULT_HARNESS_ID,
+        workflowRevision: Math.max(1, state.workflowRevision ?? 1), sessions,
+        ...(definition ? { definition: structuredClone(definition) } : {}),
+        ...(state.agentSessionMeta?.[agentId] ? { meta: structuredClone(state.agentSessionMeta[agentId]) } : {}) };
+      if (!archived.some(previous => isDeepStrictEqual(previous, entry))) archived.push(entry);
+    }
+  }
+  if (archived.length) state.archivedAgentSessions = archived;
+  for (const key of keys) {
+    for (const agentId of agents) {
+      if (!collaborationSessionBelongsToAgent(key, agentId)) continue;
+      if (state.agentSessions) delete state.agentSessions[key];
+      if (state.agentSessionIds) delete state.agentSessionIds[key];
+      if (state.agentSessionMeta) delete state.agentSessionMeta[key];
+      break;
+    }
+  }
+}
+
 export function removedWorkflowAgentTaskReason(state: ProjectState, nextAgents: ProjectState["agents"]): string | undefined {
   const agent = [state.activeAgentExecution?.agent, state.currentAgent, state.queuedAgent].find(id => id && !nextAgents[id]);
   return agent ? `等待显式处理被删除 Agent ${agent} 的原未结束任务或排队调用；保留原任务、会话和预算` : undefined;

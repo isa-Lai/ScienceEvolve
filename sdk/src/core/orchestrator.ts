@@ -3,7 +3,7 @@ import type { ProjectAgentQueueSource } from "./agent-queue-view.js";
 import { beginWorkflowRecovery, checkpointWorkflowRecovery, finishWorkflowRecovery, hasUserWorkflowPause } from "./workflow-recovery.js";
 import { legacyContextBackground } from "./context-injection-budget.js";
 import { validateDisplayArtifacts } from "./display-artifact-validation.js";
-import { removedWorkflowAgentTaskReason } from "./workflow-session-archive.js";
+import { removedWorkflowAgentTaskReason, archiveWorkflowAgentSessionsForHarnessMigration } from "./workflow-session-archive.js";
 import { assertWorkflowSessionHarnesses } from "./workflow-session-compatibility.js";
 import type { WorkflowAdjustmentPageInput, WorkflowAdjustmentRecord, WorkflowAdjustmentSnapshot, WorkflowConfigurationVersion } from "./workflow-adjustments.js";
 import { sameWorkflowConfigurationVersion } from "./workflow-adjustments.js";
@@ -1934,8 +1934,9 @@ export class Orchestrator {
     return await this.projectView(state);
   }
 
-  /** Persist a migration model while startup recovery is explicitly deferred. */
-  async migrateAgentModels(projectId: string, model: string): Promise<void> {
+  /** Persist migrated model and optional native Harness while recovery is deferred. */
+  async migrateAgentModels(projectId: string, model: string,
+    target?: { harness: "codex" | "agy"; nativeProfileId: string }): Promise<void> {
     if (!this.config.deferAutomaticRecovery) throw new Error("Agent model migration requires deferred automatic recovery");
     const runtime = await this.requireRuntime(projectId);
     const { state } = runtime;
@@ -1944,6 +1945,8 @@ export class Orchestrator {
     }
     const normalized = model.trim();
     if (!normalized || normalized.length > 200) throw new Error("Migration model must be nonempty and at most 200 characters");
+    if (target && (!target.nativeProfileId.trim() || !/^[A-Za-z0-9_-]{1,80}$/.test(target.nativeProfileId)))
+      throw new Error("Migration native profile ID is invalid");
     if (!this.collaborationRuntime?.setResumeAgentModels) throw new Error("Model migration is unavailable for this runtime");
     const releaseMutation = this.storage.reserveProjectMutation(projectId);
     try {
@@ -1952,15 +1955,25 @@ export class Orchestrator {
         if (state.currentAgent || state.activeInvocationId || this.storage.hasActiveInvocationCommit(projectId)) {
           throw new Error("Cannot migrate a project with an active Agent invocation");
         }
-        const previousModels = Object.fromEntries(state.orchestration.agents.map(({ name }) => [name, state.agents[name]?.model]));
-        await this.collaborationRuntime!.setResumeAgentModels!(state, normalized, `runtime-migration:${randomUUID()}`);
+        const previous = Object.fromEntries(state.orchestration.agents.map(({ name }) => [name, {
+          model: state.agents[name]?.model, harness: state.agents[name]?.harness ?? DEFAULT_HARNESS_ID,
+          nativeProfileId: state.agents[name]?.nativeAgyProfileId ?? state.agents[name]?.nativeCodexProfileId
+        }]));
+        const switchedAgents = target ? state.orchestration.agents.filter(({ name }) =>
+          state.agents[name] && (state.agents[name]!.harness ?? DEFAULT_HARNESS_ID) !== target.harness).map(({ name }) => name) : [];
+        if (switchedAgents.length) archiveWorkflowAgentSessionsForHarnessMigration(state, switchedAgents);
+        await this.collaborationRuntime!.setResumeAgentModels!(state, normalized,
+          `${target ? "runtime-harness-migration" : "runtime-migration"}:${randomUUID()}`, target);
         const changes = state.orchestration.agents.flatMap(({ name, template }) => {
-          const previousModel = previousModels[name], agent = state.agents[name];
-          return !agent || previousModel === normalized ? [] : [{ agent: name, kind: name === SYSTEM_CONTROLLER_AGENT ? "main" : "worker",
-            template, previousModel, model: normalized, harness: agent.harness ?? DEFAULT_HARNESS_ID }];
+          const before = previous[name], agent = state.agents[name], harness = target?.harness ?? agent?.harness ?? DEFAULT_HARNESS_ID;
+          return !agent || before.model === normalized && before.harness === harness &&
+            (!target || before.nativeProfileId === target.nativeProfileId) ? [] : [{ agent: name,
+            kind: name === SYSTEM_CONTROLLER_AGENT ? "main" : "worker", template,
+            previousModel: before.model, model: normalized, previousHarness: before.harness, harness,
+            ...(target ? { previousNativeProfileId: before.nativeProfileId, nativeProfileId: target.nativeProfileId } : {}) }];
         });
         if (changes.length) await this.storage.appendEvent(state, { type: "project.config.updated",
-          message: `Migration set model to ${normalized} for ${changes.length} configured Agent${changes.length === 1 ? "" : "s"}`,
+          message: `Migration updated model${target ? ` and harness to ${target.harness}` : ""} for ${changes.length} configured Agent${changes.length === 1 ? "" : "s"}`,
           data: { source: "runtime.migration", changes } });
       });
     } finally { releaseMutation(); }

@@ -97,6 +97,23 @@ The SDK does not read or copy `auth.json` or edit `config.toml`. Codex manages a
 
 Unsupported formats are rejected. OAuth tokens are not treated as API keys, and no gateway test is fabricated. Native routing bypasses the gateway proxy and currently lacks its equivalent per-request token ledger. Missing or zero statistics do not mean free calls; use the native service's billing and quota information. Protocol usage facts and the gateway request ledger are distinct.
 
+### Migrating existing projects between Codex and Agy
+
+`run migrate` copies a supported older Main runtime into a new data directory and applies the selected model. Add `--harness codex|agy --native-profile ID` to switch every runnable project's configured Agents to a native profile on the target Harness. Provide that alias in the destination `--runtime-config`; the profile alias is deployment configuration, not copied authentication.
+
+For Agy, configure the existing Antigravity login directory and migrate the projects:
+
+```json
+{ "nativeAgyProfiles": { "login": "C:/Users/YOU/.gemini/antigravity-cli" } }
+```
+
+```powershell
+scievolve run migrate --data-dir D:/runs/old-main --output D:/runs/new-main `
+  --model gemini-2.5-pro --harness agy --native-profile login --runtime-config D:/research/deployment.json
+```
+
+To switch to Codex, use `nativeCodexProfiles` and `--harness codex` with a registered Codex profile alias. Migration archives active session references for Agents whose Harness changes and starts fresh sessions on the destination; earlier transcripts and immutable native-binding records remain available as history. The source directory is unchanged, and the migration process itself does not schedule Agents. When a normal runtime is later opened on the destination, its usual recovery rules apply: paused projects wait for an explicit resume, while interrupted runnable projects may resume automatically. This command only accepts the source runtime revisions listed by the migration implementation; unsupported revisions must not be relabeled by editing their marker.
+
 ### Read-only import of Harness API-key configuration
 
 Explicit import can reuse an existing URL and API key:
