@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "coreIdentity": "exact-source-v1",
-  "sourceCommit": "61d257921a5c98903d305941e450b27e6a757af1",
+  "sourceCommit": "1385b7c85ae920746d45b7ffac715764b3e3a503",
   "sourceSnapshotKind": "working-tree",
   "roots": [
     "orchestrator.ts",
@@ -23,7 +23,7 @@
     "harness-runtime/adapters/pi-mcp-extension.ts",
     "sleep-mcp.ts"
   ],
-  "sharedFixesSha256": "dd8cfd9de0d5b6f1869a3c452b27844460ecb0b6ba2b7afc95d53e710f0821ee",
+  "sharedFixesSha256": "f862a7848b3b387c85928e32badb7ef2b5519f2263aeb23f7a3cc186dae91389",
   "brandingVersion": "scienceevolve-v1",
   "brandingSha256": "a8a98aff64705d1bec8f0071fc38608c0692f9e8a4d2230c9832fb530a038725",
   "runtimePins": {
@@ -107,7 +107,7 @@
       "configSha256": "ff4bd6f94e96b4da543ea245f3ae3d9db4545a43976619d497afb93a128281b8"
     }
   },
-  "runtimeRevision": "61d257921a5c98903d305941e450b27e6a757af1+5b16d1f83fc9c54a",
+  "runtimeRevision": "1385b7c85ae920746d45b7ffac715764b3e3a503+1f5c7e8b50d2f552",
   "files": [
     {
       "source": "server/src/acceptance-controller.ts",
@@ -464,10 +464,10 @@
     {
       "source": "server/src/collaboration-runtime.ts",
       "target": "src/core/collaboration-runtime.ts",
-      "sourceSha256": "ea41994a18037b58cb189475f940a4a4abde68d57c2d912a64d9feb19e647b58",
+      "sourceSha256": "f38ebbeb712b40ddf8aac8acfce1b7d86319252c156177655a58210cd2bad452",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "ea41994a18037b58cb189475f940a4a4abde68d57c2d912a64d9feb19e647b58"
+      "sha256": "f38ebbeb712b40ddf8aac8acfce1b7d86319252c156177655a58210cd2bad452"
     },
     {
       "source": "server/src/collaboration-state/contracts.ts",
@@ -520,10 +520,10 @@
     {
       "source": "server/src/collaboration-state/store.ts",
       "target": "src/core/collaboration-state/store.ts",
-      "sourceSha256": "d0549e58856cf5e06be4da1f8def056cea2cc21f3eac5096a124f32967d309da",
+      "sourceSha256": "a39faed9152ac16d6ef780f342d447cb89a534bfd8f4af5bdcc4070da1562d9b",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "d0549e58856cf5e06be4da1f8def056cea2cc21f3eac5096a124f32967d309da"
+      "sha256": "a39faed9152ac16d6ef780f342d447cb89a534bfd8f4af5bdcc4070da1562d9b"
     },
     {
       "source": "server/src/collaboration-state/writer-lease-heartbeat.ts",
@@ -1304,10 +1304,10 @@
     {
       "source": "server/src/orchestrator.ts",
       "target": "src/core/orchestrator.ts",
-      "sourceSha256": "149424b167d1e246ff6252ab7dfc0fd2de8369d3a50de63dde0f0beed9a3dc7c",
+      "sourceSha256": "0105152a3555fa058ededb4409e17ad37b2e76ce77b842f9faa2b55da437b386",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "149424b167d1e246ff6252ab7dfc0fd2de8369d3a50de63dde0f0beed9a3dc7c"
+      "sha256": "0105152a3555fa058ededb4409e17ad37b2e76ce77b842f9faa2b55da437b386"
     },
     {
       "source": "server/src/project-directory-aliases.ts",
@@ -1592,10 +1592,10 @@
     {
       "source": "server/src/serial-workflow-projection.ts",
       "target": "src/core/serial-workflow-projection.ts",
-      "sourceSha256": "85fbc2e3d95e0c4f62bbbab260a0f2e72804765a6dc97d7a11036c67cad69c70",
+      "sourceSha256": "7639c91b0222c987b14b13ad323170cb6bd2291c9e66f9185e8af191c64fe4b7",
       "sharedFixes": [],
       "brandingEdits": [],
-      "sha256": "85fbc2e3d95e0c4f62bbbab260a0f2e72804765a6dc97d7a11036c67cad69c70"
+      "sha256": "7639c91b0222c987b14b13ad323170cb6bd2291c9e66f9185e8af191c64fe4b7"
     },
     {
       "source": "server/src/sii-experiments.ts",

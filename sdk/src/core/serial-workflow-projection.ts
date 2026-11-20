@@ -89,7 +89,11 @@ export async function restoreSerialWorkflowConfiguration(database: Collaboration
       state.orchestration, state.agents, state.skillDefinitions, state.mcpDefinitions, current.version),
       async () => { await assertCurrent(); return true; });
     await assertCurrent();
-    await storage.saveState(state, assertCurrent);
+    // ProjectStorage's formal checkpoint publication callback runs while the
+    // state-document transaction is active. Keep database reads outside that
+    // callback: DatabaseWorkerClient rejects nested requests from a publisher.
+    await assertCurrent();
+    await storage.saveState(state);
     await assertCurrent();
   } catch (error) {
     // Roll back only our own installed configuration. A later original owner

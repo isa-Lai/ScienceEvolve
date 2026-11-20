@@ -43,7 +43,7 @@ export interface MainResearchRun {
   wait(options?: { signal?: AbortSignal }): Promise<MainRunSnapshot>;
   events(options?: MainEventOptions): AsyncIterable<TimelineEvent>;
   pause(): Promise<MainRunSnapshot>;
-  resume(): Promise<MainRunSnapshot>;
+  resume(options?: { model?: string }): Promise<MainRunSnapshot>;
   /** main Git-on F13 Stop preserves resumable work (paused); Git-off cancellation is terminal. */
   cancel(): Promise<MainRunSnapshot>;
   retryGitInitialization(): Promise<MainRunSnapshot>;
@@ -219,7 +219,7 @@ export async function createMainSdkClient(runtime: MainApplicationRuntime, redac
         } finally { signal.removeEventListener("abort", unsubscribe); unsubscribe(); }
       },
       pause: () => operation(async () => snapshot(await runtime.orchestrator.pause(id))),
-      resume: () => operation(async () => snapshot(await runtime.orchestrator.resume(id))),
+      resume: (options) => operation(async () => snapshot(await runtime.orchestrator.resume(id, options))),
       cancel: () => operation(async () => snapshot(await runtime.orchestrator.cancel(id))),
       retryGitInitialization: () => operation(async () => snapshot(await runtime.orchestrator.retryGitInitialization(id))),
       exportWorkspace: (options) => operation(async () => {

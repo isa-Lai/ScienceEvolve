@@ -6,6 +6,7 @@ export type { MainWorkflowConfig, MainWorkflowAgentConfig, MainProjectGitInput, 
 export { loadMainRuntimeConfig, validateMainResearchSdkOptions, validateMainGatewayBindings } from "./main-options.js";
 export type { MainGatewayBindings } from "./main-options.js";
 export { MAIN_RUNTIME_SOURCE_COMMIT, MAIN_RUNTIME_REVISION } from "./main-runtime.js";
+export { migrateMainRuntimeData } from "./main-runtime.js";
 export type { AgentHarness, GatewayInput, PublicGatewayRecord, GatewayTestResult, GatewayProbeStageResult } from "./core/agent-runtime.js";
 export type { AgentOrchestrationTemplateV3, ProjectGitState, ProjectRuntimeProjection, TimelineEvent } from "./core/types.js";
 export type { GitHubCredentialResolver, GitHubCredential } from "./core/collaboration-git/index.js";

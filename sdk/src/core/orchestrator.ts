@@ -337,7 +337,7 @@ export class Orchestrator {
     private readonly runner: AgentRunner,
     private readonly config: Pick<AppConfig, "retryBaseMs" | "retryMaxMs"> &
       Partial<Pick<AppConfig, "agentConcurrency" | "interruptForceTimeoutMs">> &
-      AgentApiWatchdogConfig,
+      AgentApiWatchdogConfig & { deferAutomaticRecovery?: boolean },
     private readonly gatewayStore?: GatewayStore,
     private readonly collaborationRuntime?: OrchestratorCollaborationRuntime,
     private readonly githubAccounts?: GitHubAccountStore,
@@ -734,6 +734,7 @@ export class Orchestrator {
       });
       resumable.push(runtime);
     }
+    if (this.config.deferAutomaticRecovery) return;
     resumable
       .sort((left, right) =>
         (left.state.queueOrder ?? Number.MAX_SAFE_INTEGER) -
@@ -1762,10 +1763,41 @@ export class Orchestrator {
     return await this.projectView(state);
   }
 
-  async resume(projectId: string, options?: CollaborationProjectResumeOptions): Promise<ProjectView> {
+  async resume(projectId: string, options?: CollaborationProjectResumeOptions & { model?: string }): Promise<ProjectView> {
     const runtime = await this.requireRuntime(projectId);
     const { state } = runtime;
     if (state.archivedAt) throw new Error("Cannot resume an archived project; unarchive it first");
+    if (options?.model !== undefined) {
+      const model = options.model.trim();
+      if (!model || model.length > 200) throw new Error("Resume model must be nonempty and at most 200 characters");
+      if (!this.collaborationRuntime?.setResumeAgentModels) throw new Error("Resume model overrides are unavailable for this run");
+      const releaseMutation = this.storage.reserveProjectMutation(projectId);
+      try {
+        await this.storage.waitForInvocationCommit(projectId);
+        await this.serializeProjectWrite(runtime, async () => {
+          if (!["paused", "interrupted"].includes(state.status) || state.currentAgent || state.activeInvocationId ||
+              this.storage.hasActiveInvocationCommit(projectId)) {
+            throw new Error("A resume model override requires a paused or interrupted run with no active Agent invocation");
+          }
+          if (state.phase === "user-intervention-required" && state.userIntervention?.status === "pending") {
+            throw new Error("Cannot override the model while Main is waiting for a user intervention response");
+          }
+          const previousModels = Object.fromEntries(state.orchestration.agents.map(({ name }) => [name, state.agents[name]?.model]));
+          await this.collaborationRuntime!.setResumeAgentModels!(state, model, `resume-model:${randomUUID()}`);
+          const changes = state.orchestration.agents.flatMap(({ name, template }) => {
+            const previousModel = previousModels[name];
+            const agent = state.agents[name];
+            return !agent || previousModel === model ? [] : [{ agent: name, kind: name === SYSTEM_CONTROLLER_AGENT ? "main" : "worker",
+              template, previousModel, model, harness: agent.harness ?? DEFAULT_HARNESS_ID }];
+          });
+          if (changes.length) await this.storage.appendEvent(state, { type: "project.config.updated",
+            message: `Model override set to ${model} for ${changes.length} configured Agent${changes.length === 1 ? "" : "s"}`,
+            data: { source: "run.resume", changes } });
+        });
+      } finally { releaseMutation(); }
+      const { model: _model, ...resumeOptions } = options;
+      options = resumeOptions;
+    }
     if (state.git?.enabled) {
       if (!this.collaborationRuntime) throw new Error("Git collaboration runtime is unavailable");
       if (options?.preserveRecoveryBudget) await this.collaborationRuntime.resumeProject(state, options);
@@ -1900,6 +1932,38 @@ export class Orchestrator {
     });
     this.startLoop(runtime);
     return await this.projectView(state);
+  }
+
+  /** Persist a migration model while startup recovery is explicitly deferred. */
+  async migrateAgentModels(projectId: string, model: string): Promise<void> {
+    if (!this.config.deferAutomaticRecovery) throw new Error("Agent model migration requires deferred automatic recovery");
+    const runtime = await this.requireRuntime(projectId);
+    const { state } = runtime;
+    if (state.archivedAt || ["completed", "cancelled"].includes(state.status)) {
+      throw new Error(`Cannot migrate model for a ${state.archivedAt ? "archived" : state.status} project`);
+    }
+    const normalized = model.trim();
+    if (!normalized || normalized.length > 200) throw new Error("Migration model must be nonempty and at most 200 characters");
+    if (!this.collaborationRuntime?.setResumeAgentModels) throw new Error("Model migration is unavailable for this runtime");
+    const releaseMutation = this.storage.reserveProjectMutation(projectId);
+    try {
+      await this.storage.waitForInvocationCommit(projectId);
+      await this.serializeProjectWrite(runtime, async () => {
+        if (state.currentAgent || state.activeInvocationId || this.storage.hasActiveInvocationCommit(projectId)) {
+          throw new Error("Cannot migrate a project with an active Agent invocation");
+        }
+        const previousModels = Object.fromEntries(state.orchestration.agents.map(({ name }) => [name, state.agents[name]?.model]));
+        await this.collaborationRuntime!.setResumeAgentModels!(state, normalized, `runtime-migration:${randomUUID()}`);
+        const changes = state.orchestration.agents.flatMap(({ name, template }) => {
+          const previousModel = previousModels[name], agent = state.agents[name];
+          return !agent || previousModel === normalized ? [] : [{ agent: name, kind: name === SYSTEM_CONTROLLER_AGENT ? "main" : "worker",
+            template, previousModel, model: normalized, harness: agent.harness ?? DEFAULT_HARNESS_ID }];
+        });
+        if (changes.length) await this.storage.appendEvent(state, { type: "project.config.updated",
+          message: `Migration set model to ${normalized} for ${changes.length} configured Agent${changes.length === 1 ? "" : "s"}`,
+          data: { source: "runtime.migration", changes } });
+      });
+    } finally { releaseMutation(); }
   }
 
   async respondToUserIntervention(

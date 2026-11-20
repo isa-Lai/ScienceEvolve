@@ -21,7 +21,10 @@ Usage: scievolve <command> [--engine main] --data-dir <absolute-dedicated-direct
             [--inputs FILE_OR_DIRECTORY | --inputs-file JSON_ARRAY_FILE] [--input-description TEXT]
             [--source-workspace <absolute-source-directory> [--source-files <json-array-file>]]
   run list | show ID | events ID [--after-seq N]
-  run resume ID | retry-git ID
+  run resume ID [--model M] | retry-git ID
+            --model changes every configured Agent's model and saves the override
+  run migrate --output <absolute-new-directory> --model M
+            Copies the source data, defers recovery, saves M for every runnable Agent, then closes.
   run pause ID | cancel ID
   run export ID --output <absolute-new-directory>
   run sync-workspace ID
@@ -264,7 +267,14 @@ export async function runMainCli(positionals, options, services = {}) {
       });
     } else throw new Error(`Unknown main gateway command: ${action ?? ""}`);
   } else if (command === "run") {
-    if (action === "start") {
+    if (action === "migrate") {
+      only(["output", "model"], 0, args);
+      const sourceDataDir = required("data-dir"), destinationDataDir = required("output"), model = required("model");
+      if (!path.isAbsolute(sourceDataDir) || !path.isAbsolute(destinationDataDir)) throw new Error("Migration source and --output must be absolute paths");
+      const config = options.has("runtime-config") ? await api.loadMainRuntimeConfig(required("runtime-config")) : {};
+      const migration = await api.migrateMainRuntimeData({ sourceDataDir, destinationDataDir, model, runtime: config });
+      line({ type: "runtime.migrated", engine: "main", ...migration, automaticRecovery: "deferred" });
+    } else if (action === "start") {
       only(["title", "preset-id", "model", "harness", "gateway", "gateway-bindings", "native-codex-profile", "native-agy-profile", "workspace", "source-workspace", "source-files", "inputs", "inputs-file", "input-description"], 2, args);
       if (options.has("inputs") && options.has("inputs-file")) throw new Error("--inputs and --inputs-file are mutually exclusive");
       let inputs;
@@ -354,7 +364,9 @@ export async function runMainCli(positionals, options, services = {}) {
         } finally { unregister(); }
       });
     } else if (["resume", "retry-git", "pause", "cancel"].includes(action)) {
-      only([], 1, args);
+      only(action === "resume" ? ["model"] : [], 1, args);
+      const model = options.has("model") ? required("model").trim() : undefined;
+      if (model !== undefined && model.length > 200) throw new Error("--model must be at most 200 characters");
       await withSdk(async (sdk, lifecycle) => {
         const run = await sdk.getRun(args[0]);
         const before = await run.snapshot();
@@ -366,7 +378,7 @@ export async function runMainCli(positionals, options, services = {}) {
           if (!(action === "pause" ? result.status === "paused" : result.status === "cancelled" || resumableStop)) exitCode = 2;
           if (result.status === "paused") return { resumeRunId: run.id };
         } else {
-          await (action === "resume" ? run.resume() : run.retryGitInitialization());
+          await (action === "resume" ? run.resume(model === undefined ? undefined : { model }) : run.retryGitInitialization());
           line({ type: action === "resume" ? "run.resumed" : "run.git.retried", engine: "main", runId: run.id });
           return foreground(run, before.eventSeq, lifecycle);
         }

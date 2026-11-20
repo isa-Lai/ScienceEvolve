@@ -312,6 +312,16 @@ describe("main CLI lifecycle transport contracts (simulated RunHandle; not nativ
     expect(await runMainCli(["run", "cancel", run.id], options(root), services)).toBe(0);
     expect(out.entries()[0].result.status).toBe("cancelled"); expect(out.stderrText()).toBe("");
   });
+  it("passes a trimmed model override only to resume", async () => {
+    const { root, services, run } = await fixture();
+    expect(await runMainCli(["run", "resume", run.id], options(root, { model: "  model-next  " }), services)).toBe(0);
+    expect(run.resume).toHaveBeenCalledWith({ model: "model-next" });
+    run.resume.mockClear();
+    await runMainCli(["run", "resume", run.id], options(root), services);
+    expect(run.resume).toHaveBeenCalledWith(undefined);
+    await expect(runMainCli(["run", "resume", run.id], options(root, { model: " " }), services)).rejects.toThrow(/Missing --model/);
+    await expect(runMainCli(["run", "resume", run.id], options(root, { model: "m".repeat(201) }), services)).rejects.toThrow(/200 characters/);
+  });
   it.each([true, false])("signal stops once, preserves sourceType/epoch and detaches handlers (git=%s)", async (git) => {
     const { root, services, signals, run, out } = await fixture(git);
     run.resume.mockImplementationOnce(async () => undefined);

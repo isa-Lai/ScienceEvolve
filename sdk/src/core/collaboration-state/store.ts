@@ -5751,6 +5751,42 @@ export class CollaborationStateDatabase {
     });
   }
 
+  /** Persist a host-authorized model override without changing workflow topology or Harness bindings. */
+  setResumeAgentModels(projectId: string, model: string, requestId: string, expectedConfigurationHash: string): { changed: boolean } {
+    const selected = model.trim();
+    if (!selected || selected.length > 200) throw new CollaborationStateError("INVALID_STATE_TRANSITION", "Resume model must be nonempty and at most 200 characters");
+    if (!requestId || requestId.length > 200 || requestId !== requestId.trim())
+      throw new CollaborationStateError("INVALID_STATE_TRANSITION", "Invalid resume model request identity");
+    return this.mutateProject(projectId, undefined, head => {
+      const prior = this.eventByRequestId(projectId, requestId);
+      if (prior) {
+        if (prior.type !== "scoped.configuration.applied" || !Object.values((prior.payload.configuration as ScopedAgentConfiguration).agents).every(agent => agent.model === selected))
+          throw new CollaborationStateError("IDEMPOTENCY_CONFLICT", "Resume model request identity was already used for another configuration");
+        return { changed: false, value: { changed: false } };
+      }
+      const current = this.workflowAdjustmentCurrent(projectId);
+      if (current.version.hash !== expectedConfigurationHash)
+        throw new CollaborationStateError("STALE_WORKFLOW_CONFIGURATION", "Agent configuration changed before the resume model override was committed");
+      if (current.snapshot.orchestration.schemaVersion !== 3 &&
+          this.eventByRequestId(projectId, `serial-workflow-journal:${projectId}`)?.type !== "serial.workflow.journal.initialized")
+        throw new CollaborationStateError("INVALID_STATE_TRANSITION", "Resume model overrides require the registered serial workflow or the scoped Git scheduler");
+      const agents = structuredClone(current.snapshot.agents);
+      const names = current.snapshot.orchestration.agents.map(agent => agent.name);
+      if (names.length !== Object.keys(agents).length || names.some(name => !agents[name]))
+        throw new CollaborationStateError("DATABASE_INTEGRITY_FAILED", "Resume model override could not match every configured Agent");
+      for (const name of names) {
+        if (this.scopedAgentHasLiveInvocation(projectId, name))
+          throw new CollaborationStateError("INVALID_STATE_TRANSITION", `Cannot change resume model while Agent ${name} has a live invocation`);
+        agents[name]!.model = selected;
+      }
+      if (names.every(name => current.snapshot.agents[name]!.model === selected))
+        return { changed: false, value: { changed: false } };
+      this.recordScopedConfiguration(head, { agents, skillDefinitions: current.snapshot.skillDefinitions,
+        mcpDefinitions: current.snapshot.mcpDefinitions }, head.workflow_revision, requestId);
+      return { changed: true, value: { changed: true } };
+    }).value;
+  }
+
   scopedConfiguration(projectId: string): ScopedAgentConfiguration | undefined {
     const row = this.database.prepare("SELECT * FROM project_events WHERE project_id = ? AND event_type = 'scoped.configuration.applied' ORDER BY seq DESC LIMIT 1").get(projectId) as Row | undefined;
     return row ? rowToEvent(row).payload.configuration as ScopedAgentConfiguration : undefined;

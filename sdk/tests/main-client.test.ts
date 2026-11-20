@@ -29,7 +29,19 @@ function mainOnly(git = false) {
       termination: { agent: "main", condition: "Fixture complete", decisionBy: "main", automatic: false },
       resultFormat: { presets: [], custom: "" } } });
 }
-async function fixture(run?: AgentRunner["run"], gatewayOptions: GatewayStoreOptions = { autoReasoning: false }) {
+function mainAndWorker() {
+  return validateMainWorkflowConfig({ git: { enabled: false }, agents: {
+    main: { model: "fixture", skills: [], autoSkills: [] }, worker: { model: "fixture", skills: [], autoSkills: [] }
+  }, orchestration: { schemaVersion: 2, collaborations: [], agents: [
+    { name: "main", template: "main" }, { name: "worker", template: "general" }
+  ], input: { source: "input", target: "main" }, routes: {
+    main: [], worker: [{ target: "main", kind: "strong" }]
+  }, decisionPlans: {},
+  termination: { agent: "main", condition: "Fixture complete", decisionBy: "main", automatic: false },
+  resultFormat: { presets: [], custom: "" } } });
+}
+async function fixture(run?: AgentRunner["run"], gatewayOptions: GatewayStoreOptions = { autoReasoning: false },
+  execution?: { retryBaseMs?: number; retryMaxMs?: number }) {
   const root = await directory();
   const runner: AgentRunner = {
     harnessCatalog: async () => harnessCatalogRegistry.list().map((descriptor) => toPublicHarnessDescriptor(descriptor, { available: true })),
@@ -40,16 +52,71 @@ async function fixture(run?: AgentRunner["run"], gatewayOptions: GatewayStoreOpt
       action: { tool: "complete_project", rationale: "Fixture acceptance satisfied" }
     }] }))
   };
-  const runtime = await createMainApplicationRuntime({ dataDir: root, skillRoots: [], gatewayOptions, internal: {
+  const runtime = await createMainApplicationRuntime({ dataDir: root, skillRoots: [], gatewayOptions, execution, internal: {
     runner, residentLauncher: { open: async () => { throw new Error("Git-off must not open resident"); } }
   } });
   runtimes.push(runtime);
   const sdk = await createMainSdkClient(runtime); sdks.push(sdk);
   const gateway = await sdk.gateways.add({ name: "fixture", url: "https://93.184.216.34/v1", apiKey: "opaque-fixture-key",
     models: ["fixture"], defaultModel: "fixture", protocol: "responses" });
-  return { sdk, runtime, root, gateway };
+  return { sdk, runtime, root, gateway, runner };
 }
 describe("explicit main SDK facade (no real model/GitHub)", () => {
+  it("overrides every configured Agent model at a safe resume point and persists it", async () => {
+    const observed: string[] = [];
+    let attempts = 0;
+    let resumedTurnStarted!: () => void;
+    const resumedTurn = new Promise<void>(resolve => { resumedTurnStarted = resolve; });
+    const { sdk, runtime, root, gateway, runner } = await fixture(async (request) => {
+      observed.push(request.project.agents[request.agent]!.model);
+      if (++attempts === 1) throw new Error("temporary provider quota");
+      resumedTurnStarted();
+      await new Promise<void>(resolve => {
+        if (request.signal.aborted) resolve();
+        else request.signal.addEventListener("abort", () => resolve(), { once: true });
+      });
+      throw new Error("stopped fixture turn");
+    }, { autoReasoning: false }, { retryBaseMs: 60_000, retryMaxMs: 60_000 });
+    const savedGateway = await runtime.gatewayStore.get(gateway.id);
+    await runtime.gatewayStore.update(gateway.id, { name: savedGateway!.name, url: savedGateway!.url, apiKey: savedGateway!.apiKey,
+      models: ["fixture", "replacement-model"], defaultModel: "fixture", protocol: savedGateway!.protocol });
+    const run = await sdk.start({ title: "Resume model override", requirement: "Persist a changed model", workflow: mainAndWorker(),
+      gatewayBindings: { defaultGatewayId: gateway.id } });
+    await vi.waitFor(async () => expect((await run.snapshot()).status).toBe("retrying"));
+    await run.pause();
+    await vi.waitFor(async () => expect((await run.snapshot()).status).toBe("paused"));
+    await sdk.close();
+    const resumedRuntime = await createMainApplicationRuntime({ dataDir: root, skillRoots: [], internal: {
+      runner, residentLauncher: { open: async () => { throw new Error("Git-off must not open resident"); } }
+    } });
+    runtimes.push(resumedRuntime);
+    const resumedSdk = await createMainSdkClient(resumedRuntime); sdks.push(resumedSdk);
+    const resumedRun = await resumedSdk.getRun(run.id);
+    await resumedRun.resume({ model: "replacement-model" });
+    await resumedTurn;
+    const state = await resumedRuntime.storage.loadState(run.id);
+    expect(state?.agents.main.model).toBe("replacement-model");
+    expect(state?.agents.worker.model).toBe("replacement-model");
+    expect(state?.agents.main.harness).toBe("codex");
+    expect(observed).toEqual(["fixture", "replacement-model"]);
+    const changes = [];
+    for await (const event of (await resumedSdk.getRun(run.id)).events({ follow: false })) {
+      if (event.type === "project.config.updated") changes.push(event.data?.changes);
+    }
+    expect(changes).toContainEqual(expect.arrayContaining([
+      expect.objectContaining({ agent: "main", previousModel: "fixture", model: "replacement-model", harness: "codex" }),
+      expect.objectContaining({ agent: "worker", previousModel: "fixture", model: "replacement-model", harness: "codex" })
+    ]));
+    await resumedSdk.close();
+    const futureRuntime = await createMainApplicationRuntime({ dataDir: root, skillRoots: [], internal: {
+      runner, residentLauncher: { open: async () => { throw new Error("Git-off must not open resident"); } }
+    } });
+    runtimes.push(futureRuntime);
+    expect((await futureRuntime.orchestrator.getProject(run.id))?.agents).toMatchObject({
+      main: { model: "replacement-model", harness: "codex" },
+      worker: { model: "replacement-model", harness: "codex" }
+    });
+  });
   it("automatically detects model reasoning after saving a gateway through the SDK facade", async () => {
     const modelFetch = vi.fn(async (_url: unknown, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body));

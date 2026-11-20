@@ -1,4 +1,5 @@
 import { promises as fs } from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { EventHub } from "./core/event-hub.js";
@@ -55,6 +56,8 @@ export interface MainApplicationRuntimeOptions {
   gatewayOptions?: GatewayStoreOptions;
   initialGateway?: GatewayInput;
   execution?: ConstructorParameters<typeof Orchestrator>[3];
+  /** Internal migration mode: load and repair state without scheduling projects. */
+  deferAutomaticRecovery?: boolean;
   /** Inject credentials in memory. Never store tokens in workflow.json. */
   git?: {
     credentialResolver: GitHubCredentialResolver;
@@ -200,7 +203,8 @@ export async function createMainApplicationRuntime(options: MainApplicationRunti
     await collaborationRuntime.initialize();
     (siiExperiments ?? options.runnerOptions?.siiExperiments)?.configureDocumentStore(collaborationRuntime.projectStateDocuments());
     engine = new Orchestrator(storage, skills, runner, {
-      retryBaseMs: 2_000, retryMaxMs: 60_000, ...options.execution
+      retryBaseMs: 2_000, retryMaxMs: 60_000, ...options.execution,
+      ...(options.deferAutomaticRecovery ? { deferAutomaticRecovery: true } : {})
     }, gatewayStore, collaborationRuntime, undefined, {
       beforePersist: async ({ projectId }) => { await sourceWorkspaces.bindDefault(projectId); },
       validateNativeCodexProfile: async (config) => { await nativeProfiles.resolve(config.nativeCodexProfileId!); },
@@ -279,6 +283,105 @@ export async function createMainApplicationRuntime(options: MainApplicationRunti
       throw new AggregateError([error, stopError], "Runtime initialization failed and Stop was not confirmed; directory remains locked");
     }
     await release();
+    throw error;
+  }
+}
+
+const SUPPORTED_MIGRATION_SOURCE = {
+  sourceCommit: "61d257921a5c98903d305941e450b27e6a757af1",
+  runtimeRevision: "61d257921a5c98903d305941e450b27e6a757af1+5b16d1f83fc9c54a"
+} as const;
+
+async function migrationTreeDigest(root: string): Promise<string> {
+  const hash = createHash("sha256");
+  const visit = async (directory: string, relative = "") => {
+    for (const entry of (await fs.readdir(directory, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
+      const name = relative ? `${relative}/${entry.name}` : entry.name;
+      const full = path.join(directory, entry.name);
+      if (entry.isSymbolicLink()) throw new Error(`Migration data contains a symbolic link: ${name}`);
+      if (entry.isDirectory()) { hash.update(`dir\0${name}\0`); await visit(full, name); }
+      else if (entry.isFile()) { hash.update(`file\0${name}\0`); hash.update(await fs.readFile(full)); }
+      else throw new Error(`Migration data contains an unsupported filesystem entry: ${name}`);
+    }
+  };
+  await visit(root);
+  return hash.digest("hex");
+}
+
+/** Copy one explicitly supported older runtime, persist every Agent model, and leave scheduling deferred. */
+export async function migrateMainRuntimeData(input: {
+  sourceDataDir: string;
+  destinationDataDir: string;
+  model: string;
+  runtime?: Omit<MainApplicationRuntimeOptions, "dataDir" | "deferAutomaticRecovery">;
+}): Promise<{ destinationDataDir: string; runtimeRevision: string; projects: number; agents: number; model: string }> {
+  const source = path.resolve(input.sourceDataDir), destination = path.resolve(input.destinationDataDir);
+  if (!path.isAbsolute(input.sourceDataDir) || !path.isAbsolute(input.destinationDataDir)) throw new Error("Migration source and destination must be absolute paths");
+  if (source === destination || source.startsWith(`${destination}${path.sep}`) || destination.startsWith(`${source}${path.sep}`)) {
+    throw new Error("Migration source and destination must be separate, non-nested directories");
+  }
+  const model = input.model.trim();
+  if (!model || model.length > 200) throw new Error("Migration model must be nonempty and at most 200 characters");
+  const lockPath = path.join(source, ".scienceevolve-runtime.lock");
+  const assertSourceUnlocked = async () => {
+    try { await fs.access(lockPath); throw new Error("Migration source has a runtime lock; confirm its owner has stopped before migration"); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+  };
+  await assertSourceUnlocked();
+  const markerPath = path.join(source, MAIN_RUNTIME_MARKER);
+  const marker = JSON.parse(await fs.readFile(markerPath, "utf8"));
+  if (marker.schemaVersion !== 1 || marker.engine !== "main-runtime" ||
+      marker.sourceCommit !== SUPPORTED_MIGRATION_SOURCE.sourceCommit || marker.runtimeRevision !== SUPPORTED_MIGRATION_SOURCE.runtimeRevision) {
+    throw new Error("Migration source runtime revision is not in the explicitly supported migration set");
+  }
+  await fs.mkdir(path.dirname(destination), { recursive: true });
+  try { await fs.lstat(destination); throw new Error("Migration destination already exists; choose a new directory"); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+  let migrationRuntime: Awaited<ReturnType<typeof createMainApplicationRuntime>> | undefined;
+  try {
+    await fs.cp(source, destination, { recursive: true, errorOnExist: true, force: false, preserveTimestamps: true });
+    const [sourceDigest, copiedDigest] = await Promise.all([migrationTreeDigest(source), migrationTreeDigest(destination)]);
+    if (sourceDigest !== copiedDigest) throw new Error("Copied migration data does not match its source");
+    await assertSourceUnlocked();
+    const copiedMarker = { ...marker, sourceCommit: MAIN_RUNTIME_SOURCE_COMMIT, runtimeRevision: MAIN_RUNTIME_REVISION };
+    await fs.writeFile(path.join(destination, MAIN_RUNTIME_MARKER), `${JSON.stringify(copiedMarker)}\n`, { flag: "w", mode: 0o600 });
+    const stateSourcePath = path.join(destination, "project-state-source.json");
+    try {
+      const stateSource = JSON.parse(await fs.readFile(stateSourcePath, "utf8"));
+      if (stateSource.protocol !== "project-state-v1" || stateSource.kind !== "sqlite" ||
+          typeof stateSource.databasePath !== "string" || !path.isAbsolute(stateSource.databasePath)) {
+        throw new Error("Migration source formal state pointer does not match its database");
+      }
+      const referencedDatabase = path.resolve(stateSource.databasePath);
+      const sourceDatabase = path.join(source, "collaboration-state.sqlite");
+      if (referencedDatabase !== sourceDatabase) {
+        const [referencedDigest, copiedDigest] = await Promise.all([
+          fs.readFile(referencedDatabase).then((bytes) => createHash("sha256").update(bytes).digest("hex")),
+          fs.readFile(sourceDatabase).then((bytes) => createHash("sha256").update(bytes).digest("hex"))
+        ]);
+        if (referencedDigest !== copiedDigest) throw new Error("Migration source formal state pointer resolves to different database contents");
+      }
+      stateSource.databasePath = path.join(destination, "collaboration-state.sqlite");
+      await fs.writeFile(stateSourcePath, `${JSON.stringify(stateSource, null, 2)}\n`, { mode: 0o600 });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+    migrationRuntime = await createMainApplicationRuntime({ ...input.runtime, dataDir: destination, deferAutomaticRecovery: true });
+    const states = await migrationRuntime.storage.listStates();
+    let agents = 0;
+    for (const state of states) {
+      if (["completed", "cancelled"].includes(state.status) || state.archivedAt) continue;
+      agents += state.orchestration.agents.filter(({ name }) => state.agents[name]).length;
+      await migrationRuntime.orchestrator.migrateAgentModels(state.id, model);
+    }
+    await migrationRuntime.close();
+    migrationRuntime = undefined;
+    await assertSourceUnlocked();
+    if (await migrationTreeDigest(source) !== sourceDigest) throw new Error("Migration source changed while migration was in progress");
+    return { destinationDataDir: destination, runtimeRevision: MAIN_RUNTIME_REVISION, projects: states.filter((state) => !["completed", "cancelled"].includes(state.status) && !state.archivedAt).length, agents, model };
+  } catch (error) {
+    if (migrationRuntime) await migrationRuntime.close();
+    await fs.rm(destination, { recursive: true, force: true });
     throw error;
   }
 }
